@@ -60,3 +60,28 @@ def seed_torch(seed=42):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
 
+
+def accuracy(preds,labels,num_classes):
+    classes = range(num_classes)
+    metric = {}
+    for c in classes:
+        pred = np.equal(c,preds)
+        label = np.equal(c,labels)
+        hit = pred&label
+        pos = np.sum(label.astype(int))
+        hit = np.sum(hit.astype(int))
+        if pos==0:
+            acc = 0.
+        else:
+            acc = hit/pos
+        metric[c] = acc
+    return metric
+
+        
+if __name__=='__main__':
+    #unit test 
+    preds = np.array([1,2,3,4,5,0,1,2])
+    labels = np.array([1,2,2,1,1,1,1,1])
+    print(accuracy(preds,labels,6))
+
+

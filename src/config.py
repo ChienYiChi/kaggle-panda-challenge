@@ -1,11 +1,11 @@
 DEBUG = False
-IMG_SIZE = 256
-MODEL_PATH = './log/eb04-reg-256-f0/'
-DATA_PATH = '/mnt/data/prostate-cancer-grade-assessment/train_256/'
+IMG_SIZE = 512
+fold = 0
+MODEL_PATH = f'./log/eb04-cls-{IMG_SIZE}-f{fold}-debug/'
+DATA_PATH = '/mnt/data/prostate-cancer-grade-assessment/train_512/'
 num_folds = 5
 seed=42
-fold = 0
-batch_size = 64
+batch_size = 16
 lr = 1e-4
 num_epoch = 30
-num_class = 1
+num_class = 6

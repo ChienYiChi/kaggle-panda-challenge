@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from tensorboardX import SummaryWriter
 import config 
 from utils import (
     setup_logger,save_dict_to_json,
@@ -21,23 +22,14 @@ def run():
     seed_torch(seed=config.seed)
     os.makedirs(config.MODEL_PATH,exist_ok=True)
     setup_logger(config.MODEL_PATH+'log.txt')
+    writer = SummaryWriter(config.MODEL_PATH)
 
-    train = pd.read_csv('./data/train.csv')
-    train.head()
+    folds = pd.read_csv('./data/folds.csv')
+    folds.head()
     
     #train val split
     if config.DEBUG:
-        folds = train.sample(n=20, random_state=config.seed).reset_index(drop=True).copy()
-    else:
-        folds = train.copy()
-
-    train_labels = folds["isup_grade"].values
-    kf = StratifiedKFold(n_splits=config.num_folds, shuffle=True, random_state=config.seed)
-    for fold, (train_index, val_index) in enumerate(kf.split(folds.values, train_labels)):
-        folds.loc[val_index, 'fold'] = int(fold)
-    folds['fold'] = folds['fold'].astype(int)
-    folds.to_csv('folds.csv', index=None)
-    folds.head()
+        folds = folds.sample(n=20, random_state=config.seed).reset_index(drop=True).copy()
 
     logging.info(f"fold: {config.fold}")
     fold = config.fold
@@ -72,8 +64,8 @@ def run():
 
     best_score = 0.
     for epoch in range(config.num_epoch):
-        train_fn(train_loader,model,optimizer,device,epoch,scheduler)
-        metric = eval_fn(val_loader,model,device,epoch)
+        train_fn(train_loader,model,optimizer,device,epoch,scheduler,writer)
+        metric = eval_fn(val_loader,model,device,epoch,writer)
         score = metric['score']
         if score > best_score:
             best_score = score 
