@@ -7,12 +7,12 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 
 
 ## To-Do-List
-- [ ] find a stable validation set
+- [x] find a stable validation set
 - [x] White Background Trim Function
-- [ ] compare best loss ckpt and best kappa ckpt
-- [ ] find the best image size 
-- [ ] 5 fold ensemble 
-- [ ] find best model 
+- [x] compare best loss ckpt and best kappa ckpt
+- [x] find the best image size 
+- [x] 5 fold ensemble 
+- [x] find best model 
 
 ## Experiments Record 
 
@@ -36,3 +36,10 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | :--------: |:--------:| :--------:|:--------:|:--------:|:--------:|
 |classification| eb04 |  |  | 0 | 768 |
 |classification| eb04 |  |  | 0 | 1024 |
+
+### E4: Image Tiles Input
+|  model  | local kappa | public kappa  |  fold num | image size | num tiles |
+|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|
+| resnext50 | 0.7910 | 0.75 | 0 | 128 | 12 |
+| resnext50 | 0.8379 | 0.83 | 0 | 256 | 12 | 
+| resnext50 | 0.8474 | 0.86 | 0 | 256 | 20 |

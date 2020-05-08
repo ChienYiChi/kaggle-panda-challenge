@@ -19,7 +19,7 @@ def crop_white(image: np.ndarray) -> np.ndarray:
 
 def save_image():
     orig_path = '/mnt/data/prostate-cancer-grade-assessment/train_images/'
-    save_path = '/mnt/data/prostate-cancer-grade-assessment/train_256/'
+    save_path = '/mnt/data/prostate-cancer-grade-assessment/train_original_2/'
     os.mkdir(save_path)
 
     train_names = os.listdir(orig_path)
@@ -28,7 +28,8 @@ def save_image():
         img_path = os.path.join(orig_path,t)
         img_save_path = os.path.join(save_path,img_name+'.png')
         image = skimage.io.MultiImage(img_path)
-        image = cv2.resize(image[-1],(256,256)) 
+        # image = cv2.resize(image[-1],(256,256)) 
+        image = image[-2]
         cv2.imwrite(img_save_path,image)    
 
 
@@ -64,4 +65,5 @@ def train_val_split():
 
 
 if __name__ == "__main__":
-    train_val_split()
+    # train_val_split()
+    save_image()

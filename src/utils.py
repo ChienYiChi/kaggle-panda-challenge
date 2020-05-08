@@ -67,7 +67,7 @@ def accuracy(preds,labels,num_classes):
     for c in classes:
         pred = np.equal(c,preds)
         label = np.equal(c,labels)
-        hit = pred&label
+        hit = np.logical_and(pred,label)
         pos = np.sum(label.astype(int))
         hit = np.sum(hit.astype(int))
         if pos==0:
