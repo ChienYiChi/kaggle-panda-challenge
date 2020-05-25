@@ -43,3 +43,6 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | resnext50 | 0.7910 | 0.75 | 0 | 128 | 12 |
 | resnext50 | 0.8379 | 0.83 | 0 | 256 | 12 | 
 | resnext50 | 0.8474 | 0.86 | 0 | 256 | 20 |
+| resnext50 | 0.8635|  0.86 | 0 | 256 | 32 |
+| resnetx50 | 0.8600 | 0.85 | 0 | 256 | 20 | 
+| resnext50 | **0.8800** | 0.8497 | 1 | 256 | 20 | 
