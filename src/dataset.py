@@ -3,7 +3,11 @@ import numpy as np
 import skimage.io
 import torch 
 from torch.utils.data import Dataset 
-from albumentations import Compose, Normalize, HorizontalFlip, VerticalFlip,Rotate
+from albumentations import (
+        Compose, Normalize, HorizontalFlip, VerticalFlip,Rotate,
+        RandomContrast,RandomBrightness,HueSaturationValue,
+        Blur,ShiftScaleRotate,OneOf,
+        )
 from albumentations.pytorch import ToTensorV2
 import config 
 
@@ -70,6 +74,13 @@ def get_transforms(*, data):
             HorizontalFlip(p=0.5),
             VerticalFlip(p=0.5),
             Rotate(limit=15,p=0.5),
+            
+            # RandomContrast(limit=0.2,p=0.5),
+            # RandomBrightness(limit=0.2,p=0.5),
+            # HueSaturationValue(p=0.5),
+            # Blur(p=0.5),
+            # ShiftScaleRotate(p=0.5),
+
             Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225],
