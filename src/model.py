@@ -1,6 +1,7 @@
 import torch 
 import torch.nn as nn 
 import torch.nn.functional as F
+from torch.nn.parameter import Parameter
 from efficientnet_pytorch import EfficientNet
 
 
@@ -12,6 +13,20 @@ class AdaptiveConcatPool2d(nn.Module):
         self.mp = nn.AdaptiveMaxPool2d(sz)
     def forward(self, x): 
         return torch.cat([self.mp(x), self.ap(x)], 1)
+
+# Reference: https://www.kaggle.com/c/aptos2019-blindness-detection/discussion/108065
+def gem(x, p=3, eps=1e-6):
+    return F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1./p)
+
+class GeM(nn.Module):
+    def __init__(self, p=3, eps=1e-6):
+        super(GeM,self).__init__()
+        self.p = Parameter(torch.ones(1)*p)
+        self.eps = eps
+    def forward(self, x):
+        return gem(x, p=self.p, eps=self.eps)       
+    def __repr__(self):
+        return self.__class__.__name__ + '(' + 'p=' + '{:.4f}'.format(self.p.data.tolist()[0]) + ', ' + 'eps=' + str(self.eps) + ')'
 
 
 class Mish(nn.Module):
@@ -29,8 +44,10 @@ class Resnext50Tiles(nn.Module):
         m = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
         self.enc = nn.Sequential(*list(m.children())[:-2])       
         nc = list(m.children())[-1].in_features
-        self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*nc,512),
-                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))
+        # self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*nc,512),
+        #                     Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))
+        self.head = nn.Sequential(GeM(),nn.Flatten(),nn.Linear(2*nc,512),
+                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))                    
         
     def forward(self, x):
         """
@@ -50,6 +67,7 @@ class Resnext50Tiles(nn.Module):
         #x: bs x C x N*4 x 4
         x = self.head(x)
         return x
+
 
 class EfficientnetTiles(nn.Module):
     def __init__(self, arch='efficientnet-b0', n=6):
