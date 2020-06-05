@@ -7,12 +7,7 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 
 
 ## To-Do-List
-- [x] find a stable validation set
-- [x] White Background Trim Function
-- [x] compare best loss ckpt and best kappa ckpt
-- [x] find the best image size 
-- [x] 5 fold ensemble 
-- [x] find best model 
+- [] attention sampeling model
 
 ## Experiments Record 
 
@@ -38,7 +33,7 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 |classification| eb04 |  |  | 0 | 1024 |
 
 ### E4: Image Tiles Input
-|  model  | local kappa | public kappa  |  fold num | image size | num tiles |
+|  model  | public kappa | local kappa  |  fold num | image size | num tiles |
 |:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|
 | resnext50 | 0.7910 | 0.75 | 0 | 128 | 12 |
 | resnext50 | 0.8379 | 0.83 | 0 | 256 | 12 | 
@@ -46,3 +41,11 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | resnext50 | 0.8635|  0.86 | 0 | 256 | 32 |
 | resnetx50 | 0.8600 | 0.85 | 0 | 256 | 20 | 
 | resnext50 | **0.8800** | 0.8497 | 1 | 256 | 20 | 
+| resnext50 |  | 0.8642 | 2 | 256 | 20 |
+| resnext50 with GEM | 0.84 | 0.8558 | 1 | 256 | 20 | 
+
+### E5: 36 x tiles 256
+|  model  | public kappa | local kappa  |  fold num | image size | num tiles |
+|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|
+| eb0 | 0.84 | 0.91 | 0 | 256 | 36 |
+| eb0 | | | 1 | 256 | 36 | 

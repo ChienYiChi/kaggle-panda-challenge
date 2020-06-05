@@ -138,6 +138,26 @@ def tile_image(img):
     return img
 
 
+def blue_ratio_selection(img):
+     hue = (100.*img[:,:,2])/(1.+img[:,:,0]+img[:,:,1])
+     intensity = 256./(1.+img[:,:,0]+img[:,:,1]+img[:,:,2])
+     blue_ratio = hue*intensity
+     return blue_ratio
+ 
+ 
+def tile_image_br(img,sz,num_tiles):
+    shape = img.shape
+    pad0,pad1 = (sz - shape[0]%sz)%sz, (sz - shape[1]%sz)%sz
+    img = np.pad(img,[[pad0//2,pad0-pad0//2],[pad1//2,pad1-pad1//2],[0,0]],
+                constant_values=255)
+    img = img.reshape(img.shape[0]//sz,sz,img.shape[1]//sz,sz,3)
+    img = img.transpose(0,2,1,3,4).reshape(-1,sz,sz,3)
+    if len(img) < num_tiles:
+        img = np.pad(img,[[0,num_tiles-len(img)],[0,0],[0,0],[0,0]],constant_values=255)
+    idxs = np.argsort([blue_ratio_selection(x).sum() for x in img])[::-1][:num_tiles]
+    img = img[idxs]
+    return img
+
 class TrainDatasetTiles(Dataset):
     def __init__(self,root_path,df, labels, transform=None):
         self.root_path = root_path
@@ -158,7 +178,7 @@ class TrainDatasetTiles(Dataset):
         image = cv2.imread(file_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        img_tiles = tile_image(image)
+        img_tiles = tile_image_br(image,config.IMG_SIZE,config.num_tiles)
         images = []
         if self.transform:
             for i in range(len(img_tiles)):

@@ -44,10 +44,10 @@ class Resnext50Tiles(nn.Module):
         m = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
         self.enc = nn.Sequential(*list(m.children())[:-2])       
         nc = list(m.children())[-1].in_features
-        # self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*nc,512),
-        #                     Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))
-        self.head = nn.Sequential(GeM(),nn.Flatten(),nn.Linear(2*nc,512),
-                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))                    
+        self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*nc,512),
+                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))
+        # self.head = nn.Sequential(GeM(),nn.Flatten(),nn.Linear(nc,512),
+        #                     Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))                    
         
     def forward(self, x):
         """
@@ -94,4 +94,30 @@ class EfficientnetTiles(nn.Module):
           .view(-1,shape[1],shape[2]*n,shape[3])
         #x: bs x C x N*4 x 4
         x = self.head(x)
+        return x
+
+
+class Resnext50TilesGRU(nn.Module):
+    def __init__(self, arch='resnext50_32x4d_ssl', n=6):
+        super().__init__()
+        m = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
+        self.enc = nn.Sequential(*list(m.children())[:-1])       
+        self.nc = list(m.children())[-1].in_features
+        self.gru = torch.nn.GRU(self.nc,self.nc,batch_first=True)
+        self.fc = nn.Linear(self.nc,6)
+    def forward(self, x):
+        """
+        Args:
+            x (batch,N,3,h,w):
+        """
+        batch = x.shape[0]
+        shape = x[0].shape
+        n = shape[0]
+        x = x.view(-1,shape[1],shape[2],shape[3])
+        #x: bs*N x 3 x 128 x 128
+        x = self.enc(x)
+        #x: bs*N x nc
+        x = x.view(batch,n,self.nc)
+        _,x = self.gru(x)#[1,batch,nc]
+        x = self.fc(x.squeeze(0))
         return x

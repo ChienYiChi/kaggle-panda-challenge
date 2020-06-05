@@ -59,9 +59,7 @@ def run():
                             )
 
     device = torch.device("cuda")
-    # model = EfficientNet.from_pretrained("efficientnet-b4",num_classes=config.num_class)
-    model = Resnext50Tiles(n=config.num_class)
-    # model = EfficientnetTiles(arch='efficientnet-b7',n=config.num_class)
+    model = Resnext50Tiles()    
     model = model.to(device)
     optimizer = Adam(model.parameters(), lr=config.lr, amsgrad=False)
     scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3, verbose=True, eps=1e-6,min_lr=1e-7)
