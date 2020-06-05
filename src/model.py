@@ -1,7 +1,7 @@
 import torch 
 import torch.nn as nn 
 import torch.nn.functional as F
-from torch.nn.parameter import Parameter
+from torchvision import models
 from efficientnet_pytorch import EfficientNet
 
 
@@ -13,20 +13,6 @@ class AdaptiveConcatPool2d(nn.Module):
         self.mp = nn.AdaptiveMaxPool2d(sz)
     def forward(self, x): 
         return torch.cat([self.mp(x), self.ap(x)], 1)
-
-# Reference: https://www.kaggle.com/c/aptos2019-blindness-detection/discussion/108065
-def gem(x, p=3, eps=1e-6):
-    return F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1./p)
-
-class GeM(nn.Module):
-    def __init__(self, p=3, eps=1e-6):
-        super(GeM,self).__init__()
-        self.p = Parameter(torch.ones(1)*p)
-        self.eps = eps
-    def forward(self, x):
-        return gem(x, p=self.p, eps=self.eps)       
-    def __repr__(self):
-        return self.__class__.__name__ + '(' + 'p=' + '{:.4f}'.format(self.p.data.tolist()[0]) + ', ' + 'eps=' + str(self.eps) + ')'
 
 
 class Mish(nn.Module):
@@ -46,8 +32,6 @@ class Resnext50Tiles(nn.Module):
         nc = list(m.children())[-1].in_features
         self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*nc,512),
                             Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))
-        # self.head = nn.Sequential(GeM(),nn.Flatten(),nn.Linear(nc,512),
-        #                     Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))                    
         
     def forward(self, x):
         """
@@ -67,7 +51,6 @@ class Resnext50Tiles(nn.Module):
         #x: bs x C x N*4 x 4
         x = self.head(x)
         return x
-
 
 class EfficientnetTiles(nn.Module):
     def __init__(self, arch='efficientnet-b0', n=6):
@@ -97,27 +80,68 @@ class EfficientnetTiles(nn.Module):
         return x
 
 
-class Resnext50TilesGRU(nn.Module):
-    def __init__(self, arch='resnext50_32x4d_ssl', n=6):
-        super().__init__()
-        m = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
-        self.enc = nn.Sequential(*list(m.children())[:-1])       
-        self.nc = list(m.children())[-1].in_features
-        self.gru = torch.nn.GRU(self.nc,self.nc,batch_first=True)
-        self.fc = nn.Linear(self.nc,6)
+class EnetV1(nn.Module):
+    def __init__(self, backbone='efficientnet-b0', num_classes=5):
+        super(EnetV1, self).__init__()
+        self.enet = EfficientNet.from_pretrained(backbone)
+        self.myfc = nn.Linear(self.enet._fc.in_features, num_classes)
+        self.enet._fc = nn.Identity()
+
+    def extract(self, x):
+        return self.enet(x)
+
     def forward(self, x):
-        """
-        Args:
-            x (batch,N,3,h,w):
-        """
-        batch = x.shape[0]
-        shape = x[0].shape
-        n = shape[0]
-        x = x.view(-1,shape[1],shape[2],shape[3])
-        #x: bs*N x 3 x 128 x 128
-        x = self.enc(x)
-        #x: bs*N x nc
-        x = x.view(batch,n,self.nc)
-        _,x = self.gru(x)#[1,batch,nc]
-        x = self.fc(x.squeeze(0))
+        x = self.extract(x)
+        x = self.myfc(x)
         return x
+
+
+class EnetV2(nn.Module):
+    def __init__(self, backbone='efficientnet-b0', num_classes=5):
+        super(EnetV2, self).__init__()
+        self.enet = EfficientNet.from_pretrained(backbone)
+        self.head = nn.Sequential(AdaptiveConcatPool2d(),
+                                nn.Flatten(),
+                                nn.Linear(2*self.enet._fc.in_features,num_classes))
+    def forward(self, x):
+        x = self.enet().extract_features(x)
+        x = self.head(x)
+        return x
+
+
+class Resnet34(nn.Module):
+    def __init__(self,num_classes=6,pretrained=True,freezing=False):
+        super(Resnet34,self).__init__()
+        self.freezing = freezing
+        self.resnet = models.resnet34(pretrained=pretrained)
+        self.conv1 = nn.Sequential(
+            self.resnet.conv1,
+            self.resnet.bn1,
+            self.resnet.relu,
+            self.resnet.maxpool
+        )
+        self.classifier = nn.Sequential(
+                nn.BatchNorm1d(512),
+                nn.Dropout(p=0.5),
+                nn.Linear(512,out_features=num_classes)
+        )
+
+        if self.freezing:
+            for param in self.resnet.parameters():
+                param.requires_grad = False
+
+
+    def forward(self,images):
+        x = self.conv1(images)
+        x = self.resnet.layer1(x)
+        x = self.resnet.layer2(x)
+        x = self.resnet.layer3(x)
+        x = self.resnet.layer4(x)
+        x = self.resnet.avgpool(x)
+        x = x.view(x.size(0),-1)
+        output = self.classifier(x)
+
+        return output
+
+if __name__=='__main__':
+    pass

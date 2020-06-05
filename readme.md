@@ -7,7 +7,11 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 
 
 ## To-Do-List
-- [] attention sampeling model
+- [ ] regression 
+- [ ] classification 
+- [ ] blue ratio selection
+- [ ] remove TTA
+- [ ] efficientnet with adaptive pooling layer 
 
 ## Experiments Record 
 
@@ -41,11 +45,10 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | resnext50 | 0.8635|  0.86 | 0 | 256 | 32 |
 | resnetx50 | 0.8600 | 0.85 | 0 | 256 | 20 | 
 | resnext50 | **0.8800** | 0.8497 | 1 | 256 | 20 | 
-| resnext50 |  | 0.8642 | 2 | 256 | 20 |
-| resnext50 with GEM | 0.84 | 0.8558 | 1 | 256 | 20 | 
 
 ### E5: 36 x tiles 256
-|  model  | public kappa | local kappa  |  fold num | image size | num tiles |
-|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|
-| eb0 | 0.84 | 0.91 | 0 | 256 | 36 |
-| eb0 | | | 1 | 256 | 36 | 
+|  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | 
+|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
+| eb0 | 0.84 | 0.91 ||| 0 | 256 | 36 | |
+| eb0 | 0.85 | 0.8645 | 0.8826,| 0.8114 | 1 | 256 | 36 | 30 |
+| eb0 new ranadom seed 42 | 0.85 | .8751 | 0.8746 | 0.8435 | 0 | 256 | 36 | 30 |
