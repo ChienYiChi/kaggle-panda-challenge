@@ -104,7 +104,7 @@ class EnetV2(nn.Module):
                                 nn.Flatten(),
                                 nn.Linear(2*self.enet._fc.in_features,num_classes))
     def forward(self, x):
-        x = self.enet(x)
+        x = self.enet().extract_features(x)
         x = self.head(x)
         return x
 
