@@ -30,11 +30,11 @@ class PANDADataset(Dataset):
     def __getitem__(self, index):
         row = self.df.iloc[index]
         img_id = row.image_id
-        tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
-        image = skimage.io.MultiImage(tiff_file)[1]
-        # img_file = os.path.join(self.image_folder,f'{img_id}.png')
-        # image = cv2.imread(img_file)
-        # image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        #tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
+        #image = skimage.io.MultiImage(tiff_file)[1]
+        img_file = os.path.join(self.image_folder,f'{img_id}.png')
+        image = cv2.imread(img_file)
+        image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
         tiles = get_tiles(image, self.image_size,self.num_tiles)
 
         if self.rand:
@@ -66,11 +66,11 @@ class PANDADataset(Dataset):
         images = images.transpose(2, 0, 1)
 
         #------oridinal regression------
-        label = np.zeros(5).astype(np.float32)
-        label[:row.isup_grade] = 1.
+        #label = np.zeros(5).astype(np.float32)
+        #label[:row.isup_grade] = 1.
 
         #------regression------
-        # label = row.isup_grade
+        label = row.isup_grade
         return torch.tensor(images).float(), torch.tensor(label).float()
 
 

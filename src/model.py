@@ -112,15 +112,11 @@ class EnetV2(nn.Module):
 class Resnext50(nn.Module):
     def __init__(self,arch='resnext50_32x4d_ssl',num_classes=6):
         super().__init__()
-        m = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
-        self.enc = nn.Sequential(*list(m.children())[:-2])       
-        nc = list(m.children())[-1].in_features
-        self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*nc,512),
-                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,num_classes))
+        self.model = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
+        self.model.fc = nn.Linear(self.model.fc.in_features,num_classes)
         
     def forward(self,x):
-        x = self.enc(x)
-        x = self.head(x)
+        x = self.model(x)
         return x 
 
 
