@@ -14,14 +14,17 @@ threshold = [0.5,1.5,2.5,3.5,4.5]
 def quadratic_weighted_kappa(y_hat, y):
     return cohen_kappa_score(y_hat, y, weights='quadratic')
 
-#------ordinal regression------
-#loss_fn = nn.BCEWithLogitsLoss()
+#------classification------
+loss_fn = nn.CrossEntropyLoss()
 
-#------regression------
-def loss_fn(outputs,targets):
-    targets = targets.view(-1,1).float()
-    # return SmoothL1Loss()(outputs,targets)
-    return nn.MSELoss()(outputs,targets)
+#------ordinal regression------
+# loss_fn = nn.BCEWithLogitsLoss()
+
+# #------regression------
+# def loss_fn(outputs,targets):
+#     targets = targets.view(-1,1).float()
+#     # return SmoothL1Loss()(outputs,targets)
+#     return nn.MSELoss()(outputs,targets)
 
 
 def train_fn(data_loader,model,optimizer,device,epoch,writer):
@@ -66,17 +69,17 @@ def eval_fn(data_loader,model,device,epoch,writer,df):
         loss = loss_fn(outputs,labels)
         avg_loss += loss.item()
         #------classification------
-        # outputs = torch.softmax(outputs,dim=1)
-        # fin_preds.extend(outputs.cpu().detach().numpy().argmax(1))
+        outputs = torch.softmax(outputs,dim=1)
+        fin_preds.extend(outputs.cpu().detach().numpy().argmax(1))
 
-        #------ordinal regression------
+        # #------ordinal regression------
         # outputs = outputs.sigmoid().sum(1).round()
         # labels = labels.sum(1)
 
         #------regression------
         # do noting to the output logits 
 
-        fin_preds.extend(outputs.cpu().detach().numpy())
+        # fin_preds.extend(outputs.cpu().detach().numpy())
         fin_targets.extend(labels.cpu().detach().numpy())
     
     avg_loss /= len(data_loader)
@@ -84,14 +87,14 @@ def eval_fn(data_loader,model,device,epoch,writer,df):
     fin_targets = np.array(fin_targets)
     fin_preds = np.array(fin_preds)
 
-    #------regression------
-    fin_preds = np.concatenate(fin_preds)
-    fin_preds[fin_preds<threshold[0]]=0
-    fin_preds[(fin_preds>=threshold[0])&(fin_preds<threshold[1])]=1
-    fin_preds[(fin_preds>=threshold[1])&(fin_preds<threshold[2])]=2
-    fin_preds[(fin_preds>=threshold[2])&(fin_preds<threshold[3])]=3
-    fin_preds[(fin_preds>=threshold[3])&(fin_preds<threshold[4])]=4
-    fin_preds[fin_preds>=threshold[4]]=5
+    # #------regression------
+    # fin_preds = np.concatenate(fin_preds)
+    # fin_preds[fin_preds<threshold[0]]=0
+    # fin_preds[(fin_preds>=threshold[0])&(fin_preds<threshold[1])]=1
+    # fin_preds[(fin_preds>=threshold[1])&(fin_preds<threshold[2])]=2
+    # fin_preds[(fin_preds>=threshold[2])&(fin_preds<threshold[3])]=3
+    # fin_preds[(fin_preds>=threshold[3])&(fin_preds<threshold[4])]=4
+    # fin_preds[fin_preds>=threshold[4]]=5
     
     qwk = quadratic_weighted_kappa(fin_targets,fin_preds)
     qwk_k = quadratic_weighted_kappa(fin_targets[df['data_provider']=='karolinska'],

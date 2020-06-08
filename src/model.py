@@ -25,13 +25,13 @@ class Mish(nn.Module):
 
 
 class Resnext50Tiles(nn.Module):
-    def __init__(self, arch='resnext50_32x4d_ssl', n=6):
+    def __init__(self, arch='resnext50_32x4d_ssl', num_classes=6):
         super().__init__()
         m = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
         self.enc = nn.Sequential(*list(m.children())[:-2])       
         nc = list(m.children())[-1].in_features
         self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*nc,512),
-                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))
+                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,num_classes))
         
     def forward(self, x):
         """
@@ -53,12 +53,12 @@ class Resnext50Tiles(nn.Module):
         return x
 
 class EfficientnetTiles(nn.Module):
-    def __init__(self, arch='efficientnet-b0', n=6):
+    def __init__(self, arch='efficientnet-b0', num_classes=6):
         super().__init__()
         self.base = EfficientNet.from_pretrained(arch)
         self.in_features = self.base._fc.in_features
         self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*self.in_features,512),
-                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,n))
+                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,num_classes))
         
     def forward(self, x):
         """
@@ -81,7 +81,7 @@ class EfficientnetTiles(nn.Module):
 
 
 class EnetV1(nn.Module):
-    def __init__(self, backbone='efficientnet-b0', num_classes=5):
+    def __init__(self, backbone='efficientnet-b0', num_classes=6):
         super(EnetV1, self).__init__()
         self.enet = EfficientNet.from_pretrained(backbone)
         self.myfc = nn.Linear(self.enet._fc.in_features, num_classes)
@@ -97,51 +97,32 @@ class EnetV1(nn.Module):
 
 
 class EnetV2(nn.Module):
-    def __init__(self, backbone='efficientnet-b0', num_classes=5):
+    def __init__(self, backbone='efficientnet-b0', num_classes=6):
         super(EnetV2, self).__init__()
         self.enet = EfficientNet.from_pretrained(backbone)
         self.head = nn.Sequential(AdaptiveConcatPool2d(),
                                 nn.Flatten(),
                                 nn.Linear(2*self.enet._fc.in_features,num_classes))
     def forward(self, x):
-        x = self.enet().extract_features(x)
+        x = self.enet.extract_features(x)
         x = self.head(x)
         return x
 
 
-class Resnet34(nn.Module):
-    def __init__(self,num_classes=6,pretrained=True,freezing=False):
-        super(Resnet34,self).__init__()
-        self.freezing = freezing
-        self.resnet = models.resnet34(pretrained=pretrained)
-        self.conv1 = nn.Sequential(
-            self.resnet.conv1,
-            self.resnet.bn1,
-            self.resnet.relu,
-            self.resnet.maxpool
-        )
-        self.classifier = nn.Sequential(
-                nn.BatchNorm1d(512),
-                nn.Dropout(p=0.5),
-                nn.Linear(512,out_features=num_classes)
-        )
+class Resnext50(nn.Module):
+    def __init__(self,arch='resnext50_32x4d_ssl',num_classes=6):
+        super().__init__()
+        m = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
+        self.enc = nn.Sequential(*list(m.children())[:-2])       
+        nc = list(m.children())[-1].in_features
+        self.head = nn.Sequential(AdaptiveConcatPool2d(),nn.Flatten(),nn.Linear(2*nc,512),
+                            Mish(),nn.BatchNorm1d(512), nn.Dropout(0.5),nn.Linear(512,num_classes))
+        
+    def forward(self,x):
+        x = self.enc(x)
+        x = self.head(x)
+        return x 
 
-        if self.freezing:
-            for param in self.resnet.parameters():
-                param.requires_grad = False
-
-
-    def forward(self,images):
-        x = self.conv1(images)
-        x = self.resnet.layer1(x)
-        x = self.resnet.layer2(x)
-        x = self.resnet.layer3(x)
-        x = self.resnet.layer4(x)
-        x = self.resnet.avgpool(x)
-        x = x.view(x.size(0),-1)
-        output = self.classifier(x)
-
-        return output
 
 if __name__=='__main__':
     pass

@@ -66,12 +66,12 @@ class PANDADataset(Dataset):
         images = images.transpose(2, 0, 1)
 
         #------oridinal regression------
-        # label = np.zeros(5).astype(np.float32)
-        # label[:row.isup_grade] = 1.
+        label = np.zeros(5).astype(np.float32)
+        label[:row.isup_grade] = 1.
 
         #------regression------
-        label = row.isup_grade
-        return torch.tensor(images), torch.tensor(label)
+        # label = row.isup_grade
+        return torch.tensor(images).float(), torch.tensor(label).float()
 
 
 class  PANDADatasetTiles(Dataset):
@@ -87,26 +87,25 @@ class  PANDADatasetTiles(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        file_name = row.image_id
-        file_path = f'{self.image_folder}{file_name}.png'
-        image = skimage.io.imread(file_path)
-        img_tiles = get_tiles_brs(image,self.image_size,self.num_tiles)
-        
-        if self.transform:
-            images = []
-            for i in range(len(img_tiles)):
-                augmented = self.transform(image=img_tiles[i])
-                images.append(augmented['image'].unsqueeze(0))
-            images = torch.cat(images,dim=0)
-        else:
-            images = img_tiles
-        images = images.astype(np.float32)
-        images /=255.
-        images = images.transpose(2,0,1)
+        img_id = row.image_id
+        tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
+        image = skimage.io.MultiImage(tiff_file)[1]
+        # img_file = os.path.join(self.image_folder,f'{img_id}.png')
+        # image = cv2.imread(img_file)
+        # image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        img_tiles = get_tiles(image,self.image_size,self.num_tiles)
+        images = np.zeros((self.num_tiles,3,self.image_size,self.image_size),np.float32)
+        for i,tile in enumerate(img_tiles):
+            if self.transform:
+                tile = self.transform(image=tile)['image']
+            tile = tile.astype(np.float32)
+            tile /=255. 
+            tile = tile.transpose(2,0,1)
+            images[i,:,:,:] = tile 
 
         label = row.isup_grade
         
-        return torch.tensor(images), torch.tensor(label)
+        return torch.tensor(images).float(), torch.tensor(label).float()
 
 
 def blue_ratio_selection(img):

@@ -77,7 +77,7 @@ def train_val_split():
 
 
 if __name__ == "__main__":
-    train_val_split()
+    # train_val_split()
     # save_image()
     # save_crop_white()
-    # save_image_fix()
+    save_image_fix()

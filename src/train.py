@@ -40,19 +40,31 @@ def run():
     df_train = folds.loc[trn_idx]
         
     df_val = folds.loc[val_idx]
-    train_dataset = PANDADataset(image_folder=config.DATA_PATH,
+    ##------single image------
+    # train_dataset = PANDADataset(image_folder=config.DATA_PATH,
+    #                              df=df_train,
+    #                              image_size=config.IMG_SIZE,
+    #                              num_tiles=config.num_tiles,
+    #                              rand=False,
+    #                              transform=get_transforms(phase='train'))
+    # valid_dataset = PANDADataset(image_folder=config.DATA_PATH,
+    #                              df=df_val,
+    #                              image_size=config.IMG_SIZE,
+    #                              num_tiles=config.num_tiles,
+    #                              rand=False, 
+    #                              transform=get_transforms(phase='valid'))
+
+    #------image tiles------
+    train_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
                                  df=df_train,
                                  image_size=config.IMG_SIZE,
                                  num_tiles=config.num_tiles,
-                                 rand=False,
                                  transform=get_transforms(phase='train'))
-    valid_dataset = PANDADataset(image_folder=config.DATA_PATH,
+    valid_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
                                  df=df_val,
                                  image_size=config.IMG_SIZE,
                                  num_tiles=config.num_tiles,
-                                 rand=False, 
                                  transform=get_transforms(phase='valid'))
-    
     train_loader = DataLoader(train_dataset, 
                                 batch_size=config.batch_size,
                                 sampler=RandomSampler(train_dataset),
@@ -66,7 +78,7 @@ def run():
                             )
 
     device = torch.device("cuda")
-    model = enetv2(out_dim=config.num_class)
+    model = EfficientnetTiles(num_classes=config.num_class)
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)
