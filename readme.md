@@ -47,15 +47,15 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | resnetx50 | 0.85 | 0.8600 | 0 | 256 | 20 | 8 |
 | resnext50 | **0.88** | 0.8497 | 1 | 256 | 20 | 8 |
 | resnext50 | 0.85 |0.8497 | 1 | 256 | 20 | 0 | 
-| eb0 | 0.83 | 0.8411 | 0.8422 | 0.8095 | 0 | 256 | 20 | 8 | 
+| eb0 | 0.83 | 0.8411 | 0 | 256 | 20 | 8 | 
 
 ### E5: 36 x tiles 256
-| type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA ｜ 
+| type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
 |:--------:|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
 | ordinal regression| eb0 | 0.84 | 0.91 ||| 0 | 256 | 36 | | 0 |
 | ordinal regression  | eb0 version2 | 0.84 | 0.8653 | 0.8758 | 0.822 | 0 | 256 | 36 | 22 | 0 | 
 | ordinal regression | eb0 | 0.85 | 0.8645 | 0.8826,| 0.8114 | 1 | 256 | 36 | 30 | 0 |
-| ordinal regression | eb0 | 0.85 | 0.8645 | 0.8826 | 0.8114 | 1 | 256 | 36 | 30 | 8 ｜
+| ordinal regression | eb0 | 0.85 | 0.8645 | 0.8826 | 0.8114 | 1 | 256 | 36 | 30 | 8 |
 | ordinal regression | eb0 new ranadom seed 42 | 0.85 | 0.8751 | 0.8746 | 0.8435 | 0 | 256 | 36 | 30 | 0 | 
 | regression | eb0  new ranadom seed 42 | 0.86 | 0.9029 | 0.8866 | 0.8784 | 0 | 256 | 36 | 28 | 0 | 
 | regression | eb0  new random seed 42 | 0.87 | 0.9029 | 0.8866 | 0.8784 | 0 | 256 | 36 | 28 | 8 | 
