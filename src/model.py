@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn 
 import torch.nn.functional as F
 from torchvision import models
+import pretrainedmodels
 from efficientnet_pytorch import EfficientNet
 
 
@@ -115,6 +116,18 @@ class Resnext50(nn.Module):
         self.model = torch.hub.load('facebookresearch/semi-supervised-ImageNet1K-models', arch)
         self.model.fc = nn.Linear(self.model.fc.in_features,num_classes)
         
+    def forward(self,x):
+        x = self.model(x)
+        return x 
+
+    
+class SEResNeXt(nn.Module):
+    def __init__(self,arch='se_resnext50_32x4d',num_classes=1,pretrained='imagenet'):
+        super().__init__()
+        self.model = pretrainedmodels.__dict__[arch](num_classes=1000, pretrained=pretrained)
+        self.model.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.model.last_linear = nn.Linear(self.model.last_linear.in_features,num_classes)
+    
     def forward(self,x):
         x = self.model(x)
         return x 
