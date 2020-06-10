@@ -6,7 +6,7 @@ from sklearn.model_selection import StratifiedKFold
 import torch 
 from torch.utils.data import DataLoader,RandomSampler,SequentialSampler
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from warmup_scheduler import GradualWarmupScheduler
 from tensorboardX import SummaryWriter
 
 
@@ -16,7 +16,7 @@ if config.apex:
 from utils import (
     setup_logger,save_dict_to_json,
     save_model,seed_torch)
-from engine import train_fn,eval_fn
+from engine import train_fn,eval_fn,OptimizedRounder
 from dataset import PANDADataset,PANDADatasetTiles,get_transforms
 from model import * 
 
@@ -78,12 +78,16 @@ def run():
                             )
 
     device = torch.device("cuda")
-    model = Resnext50(num_classes=config.num_class)
+    model = SEResNeXt(num_classes=config.num_class,pretrained='imagenet')
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)
-    optimizer = Adam(model.parameters(), lr=config.lr, amsgrad=False)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=3, verbose=True, eps=1e-6,min_lr=1e-7)
+    warmup_factor = 10 
+    warmup_epo = 1 
+    optimizer = Adam(model.parameters(), lr=config.lr/warmup_factor)
+    scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, config.num_epoch-warmup_epo)
+    scheduler = GradualWarmupScheduler(optimizer, multiplier=warmup_factor, total_epoch=warmup_epo, after_scheduler=scheduler_cosine)
+
     
     if config.apex:
         model, optimizer = amp.initialize(model, optimizer, opt_level="O1", verbosity=0)
@@ -91,15 +95,16 @@ def run():
 
     best_score = 0.
     best_loss = 100.
+    optimized_rounder = OptimizedRounder()
     for epoch in range(config.num_epoch):
-        train_fn(train_loader,model,optimizer,device,epoch,writer)
-        metric = eval_fn(val_loader,model,device,epoch,writer,df_val)
+        coefficients =train_fn(train_loader,model,optimizer,device,epoch,writer,optimized_rounder,df_train)
+        metric = eval_fn(val_loader,model,device,epoch,writer,df_val,coefficients)
         score = metric['score']
         val_loss = metric['loss']
-        scheduler.step(val_loss)
+        scheduler.step(epoch)
         if score > best_score:
             best_score = score 
-            logging.info(f"Epoch {epoch} - found best score {best_score}")
+            logging.info(f"Epoch {epoch} - found best score {best_score} with coefficient {coefficients}")
             save_model(model,config.MODEL_PATH+f"best_kappa_f{fold}.pth")
         if val_loss < best_loss:
             best_loss = val_loss 
