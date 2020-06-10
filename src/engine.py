@@ -4,6 +4,9 @@ import torch
 import torch.nn as nn 
 from tqdm import tqdm 
 from sklearn.metrics import cohen_kappa_score
+import scipy
+from functools import partial
+
 import config 
 from utils import accuracy
 if config.apex:
@@ -22,14 +25,15 @@ def quadratic_weighted_kappa(y_hat, y):
 
 #------regression------
 def loss_fn(outputs,targets):
-    targets = targets.view(-1,1).float()
-    # return SmoothL1Loss()(outputs,targets)
+    outputs = outputs.view(-1)
+    # return nn.SmoothL1Loss()(outputs,targets)
     return nn.MSELoss()(outputs,targets)
 
 
-def train_fn(data_loader,model,optimizer,device,epoch,writer):
+def train_fn(data_loader,model,optimizer,device,epoch,writer,optimized_rounder,df):
     model.train()
-
+    fin_preds = []
+    fin_targets = []
     pbar = tqdm(enumerate(data_loader),total=len(data_loader))
     avg_loss = 0.
     for idx,data in pbar:
@@ -47,13 +51,28 @@ def train_fn(data_loader,model,optimizer,device,epoch,writer):
         optimizer.step()
         pbar.set_description("loss:%.5f"%loss.item())
         avg_loss += loss.item()
+        #------regression------
+        fin_preds.append(outputs.cpu().detach().numpy())
+        fin_targets.append(labels.cpu().detach().numpy())
     
+    fin_preds = np.concatenate(fin_preds)
+    fin_targets = np.concatenate(fin_targets)
+    optimized_rounder.fit(fin_preds,fin_targets)
+    coefficients = optimized_rounder.coefficients()
+    fin_preds = optimized_rounder.predict(fin_preds,coefficients)
+    qwk = quadratic_weighted_kappa(fin_targets,fin_preds)
+    qwk_k = quadratic_weighted_kappa(fin_targets[df['data_provider']=='karolinska'],
+                                    fin_preds[df['data_provider']=='karolinska'])
+    qwk_r = quadratic_weighted_kappa(fin_targets[df['data_provider']=='radboud'],
+                                    fin_preds[df['data_provider']=='radboud'])
     avg_loss /= len(data_loader)
-    logging.info(f"Epoch {epoch} | train loss {avg_loss}")
+    logging.info(f"Epoch {epoch} | lr {optimizer.param_groups[0]['lr']:.7f} | train loss {avg_loss} | kappa all:{qwk}, karolinska:{qwk_k}, radboud:{qwk_r} | coefficients: {coefficients}")
     writer.add_scalar('train_loss',avg_loss,epoch+1)
+    return coefficients
     
 
-def eval_fn(data_loader,model,device,epoch,writer,df):
+def eval_fn(data_loader,model,device,epoch,writer,df,coefficients):
+    optimized_rounder = OptimizedRounder()
     model.eval()
     fin_targets = []
     fin_preds = []
@@ -87,14 +106,15 @@ def eval_fn(data_loader,model,device,epoch,writer,df):
     fin_targets = np.array(fin_targets)
     fin_preds = np.array(fin_preds)
 
-    #------regression------
-    fin_preds = np.concatenate(fin_preds)
-    fin_preds[fin_preds<threshold[0]]=0
-    fin_preds[(fin_preds>=threshold[0])&(fin_preds<threshold[1])]=1
-    fin_preds[(fin_preds>=threshold[1])&(fin_preds<threshold[2])]=2
-    fin_preds[(fin_preds>=threshold[2])&(fin_preds<threshold[3])]=3
-    fin_preds[(fin_preds>=threshold[3])&(fin_preds<threshold[4])]=4
-    fin_preds[fin_preds>=threshold[4]]=5
+    # #------regression------
+    # fin_preds = np.concatenate(fin_preds)
+    # fin_preds[fin_preds<threshold[0]]=0
+    # fin_preds[(fin_preds>=threshold[0])&(fin_preds<threshold[1])]=1
+    # fin_preds[(fin_preds>=threshold[1])&(fin_preds<threshold[2])]=2
+    # fin_preds[(fin_preds>=threshold[2])&(fin_preds<threshold[3])]=3
+    # fin_preds[(fin_preds>=threshold[3])&(fin_preds<threshold[4])]=4
+    # fin_preds[fin_preds>=threshold[4]]=5
+    fin_preds = optimized_rounder.predict(fin_preds,coefficients)
     
     qwk = quadratic_weighted_kappa(fin_targets,fin_preds)
     qwk_k = quadratic_weighted_kappa(fin_targets[df['data_provider']=='karolinska'],
@@ -112,3 +132,52 @@ def eval_fn(data_loader,model,device,epoch,writer,df):
 
     metric = {"loss":avg_loss,"score":qwk}
     return metric
+
+
+class OptimizedRounder():
+    def __init__(self):
+        self.coef_ = 0
+
+    def _kappa_loss(self, coef, X, y):
+        X_p = np.copy(X)
+        for i, pred in enumerate(X_p):
+            if pred < coef[0]:
+                X_p[i] = 0
+            elif pred >= coef[0] and pred < coef[1]:
+                X_p[i] = 1
+            elif pred >= coef[1] and pred < coef[2]:
+                X_p[i] = 2
+            elif pred >= coef[2] and pred < coef[3]:
+                X_p[i] = 3
+            elif pred >= coef[3] and pred < coef[4]:
+                X_p[i] = 4
+            else:
+                X_p[i] = 5
+
+        ll = quadratic_weighted_kappa(y, X_p)
+        return -ll
+
+    def fit(self, X, y):
+        loss_partial = partial(self._kappa_loss, X=X, y=y)
+        initial_coef = [0.5, 1.5, 2.5, 3.5, 4.5]
+        self.coef_ = scipy.optimize.minimize(loss_partial, initial_coef, method='nelder-mead')
+
+    def predict(self, X, coef):
+        X_p = np.copy(X)
+        for i, pred in enumerate(X_p):
+            if pred < coef[0]:
+                X_p[i] = 0
+            elif pred >= coef[0] and pred < coef[1]:
+                X_p[i] = 1
+            elif pred >= coef[1] and pred < coef[2]:
+                X_p[i] = 2
+            elif pred >= coef[2] and pred < coef[3]:
+                X_p[i] = 3
+            elif pred >= coef[3] and pred < coef[4]:
+                X_p[i] = 4
+            else:
+                X_p[i] = 5
+        return X_p
+
+    def coefficients(self):
+        return self.coef_['x']
