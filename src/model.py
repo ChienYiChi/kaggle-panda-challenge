@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
 from efficientnet_pytorch import EfficientNet
+from efficientnet_pytorch.utils import MemoryEfficientSwish
 
 
 class AdaptiveConcatPool2d(nn.Module):

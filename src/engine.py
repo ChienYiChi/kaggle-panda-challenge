@@ -18,7 +18,7 @@ def quadratic_weighted_kappa(y_hat, y):
 #loss_fn = nn.CrossEntropyLoss()
 
 #------ordinal regression------
-#loss_fn = nn.BCEWithLogitsLoss()
+# loss_fn = nn.BCEWithLogitsLoss()
 
 #------regression------
 def loss_fn(outputs,targets):

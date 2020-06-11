@@ -6,6 +6,8 @@ import torch
 from torch.utils.data import Dataset 
 import config 
 import albumentations
+from tqdm import tqdm 
+import time 
 
 
 class PANDADataset(Dataset):
@@ -35,7 +37,7 @@ class PANDADataset(Dataset):
         img_file = os.path.join(self.image_folder,f'{img_id}.png')
         image = cv2.imread(img_file)
         image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-        tiles = get_tiles(image, self.image_size,self.num_tiles)
+        tiles = get_tiles_brs(image, self.image_size,self.num_tiles)
 
         if self.rand:
             idxes = np.random.choice(list(range(self.num_tiles)), self.num_tiles, replace=False)
@@ -138,6 +140,8 @@ def get_tiles_brs(img,sz,num_tiles):
     img = img.transpose(0,2,1,3,4).reshape(-1,sz,sz,3)
     if len(img) < num_tiles:
         img = np.pad(img,[[0,num_tiles-len(img)],[0,0],[0,0],[0,0]],constant_values=255)
+    idxs = np.argsort(img.reshape(img.shape[0],-1).sum(-1))[:num_tiles*2]
+    img = img[idxs]
     idxs = np.argsort([blue_ratio_selection(x).sum() for x in img])[::-1][:num_tiles]
     img = img[idxs]
     return img
