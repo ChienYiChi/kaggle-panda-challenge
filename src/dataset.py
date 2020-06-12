@@ -35,7 +35,7 @@ class PANDADataset(Dataset):
         #img_file = os.path.join(self.image_folder,f'{img_id}.png')
         #image = cv2.imread(img_file)
         #image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-        tiles = get_tiles(image, self.image_size,self.num_tiles)
+        tiles = get_tiles_brs(image, self.image_size,self.num_tiles)
 
         if self.rand:
             idxes = np.random.choice(list(range(self.num_tiles)), self.num_tiles, replace=False)
