@@ -90,11 +90,11 @@ class  PANDADatasetTiles(Dataset):
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
         img_id = row.image_id
-        tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
-        image = skimage.io.MultiImage(tiff_file)[2]
-        # img_file = os.path.join(self.image_folder,f'{img_id}.png')
-        # image = cv2.imread(img_file)
-        # image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        # tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
+        # image = skimage.io.MultiImage(tiff_file)[2]
+        img_file = os.path.join(self.image_folder,f'{img_id}.png')
+        image = cv2.imread(img_file)
+        image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
         img_tiles = get_tiles_brs(image,self.image_size,self.num_tiles)
         images = np.zeros((self.num_tiles,3,self.image_size,self.image_size),np.float32)
         for i,tile in enumerate(img_tiles):
@@ -107,7 +107,7 @@ class  PANDADatasetTiles(Dataset):
 
         label = row.isup_grade
         
-        return torch.tensor(images).float(), torch.tensor(label).float()
+        return torch.tensor(images).float(), torch.tensor(label).long()
 
 
 def blue_ratio_selection(img):

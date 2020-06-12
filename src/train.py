@@ -100,13 +100,17 @@ def run():
     optimizer.step()
     for epoch in range(1,config.num_epoch+1):
         scheduler.step(epoch-1)
-        coefficients =train_fn(train_loader,model,optimizer,device,epoch,writer,optimized_rounder,df_train)
-        metric = eval_fn(val_loader,model,device,epoch,writer,df_val,coefficients)
+        # #------regression------
+        # coefficients =train_fn(train_loader,model,optimizer,device,epoch,writer,optimized_rounder,df_train)
+        # metric = eval_fn(val_loader,model,device,epoch,writer,df_val,coefficients)
+        #------classification------
+        train_fn(train_loader,model,optimizer,device,epoch,writer,df_train)
+        metric = eval_fn(val_loader,model,device,epoch,writer,df_val)
         score = metric['score']
         val_loss = metric['loss']
         if score > best_score:
             best_score = score 
-            logging.info(f"Epoch {epoch} - found best score {best_score} with coefficient {coefficients}")
+            logging.info(f"Epoch {epoch} - found best score {best_score}")
             save_model(model,config.MODEL_PATH+f"best_kappa_f{fold}.pth")
         if val_loss < best_loss:
             best_loss = val_loss 
