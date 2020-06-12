@@ -32,11 +32,11 @@ class PANDADataset(Dataset):
     def __getitem__(self, index):
         row = self.df.iloc[index]
         img_id = row.image_id
-        #tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
-        #image = skimage.io.MultiImage(tiff_file)[1]
-        img_file = os.path.join(self.image_folder,f'{img_id}.png')
-        image = cv2.imread(img_file)
-        image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
+        image = skimage.io.MultiImage(tiff_file)[2]
+        #img_file = os.path.join(self.image_folder,f'{img_id}.png')
+        #image = cv2.imread(img_file)
+        #image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
         tiles = get_tiles_brs(image, self.image_size,self.num_tiles)
 
         if self.rand:
@@ -91,11 +91,11 @@ class  PANDADatasetTiles(Dataset):
         row = self.df.iloc[idx]
         img_id = row.image_id
         tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
-        image = skimage.io.MultiImage(tiff_file)[1]
+        image = skimage.io.MultiImage(tiff_file)[2]
         # img_file = os.path.join(self.image_folder,f'{img_id}.png')
         # image = cv2.imread(img_file)
         # image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-        img_tiles = get_tiles(image,self.image_size,self.num_tiles)
+        img_tiles = get_tiles_brs(image,self.image_size,self.num_tiles)
         images = np.zeros((self.num_tiles,3,self.image_size,self.image_size),np.float32)
         for i,tile in enumerate(img_tiles):
             if self.transform:
@@ -140,11 +140,12 @@ def get_tiles_brs(img,sz,num_tiles):
     img = img.transpose(0,2,1,3,4).reshape(-1,sz,sz,3)
     if len(img) < num_tiles:
         img = np.pad(img,[[0,num_tiles-len(img)],[0,0],[0,0],[0,0]],constant_values=255)
-    idxs = np.argsort(img.reshape(img.shape[0],-1).sum(-1))[:num_tiles*2]
+    idxs = np.argsort(img.reshape(img.shape[0],-1).sum(-1))[:num_tiles*4]
     img = img[idxs]
     idxs = np.argsort([blue_ratio_selection(x).sum() for x in img])[::-1][:num_tiles]
     img = img[idxs]
     return img
+
 
 def get_transforms(phase):
     if phase=='train':
