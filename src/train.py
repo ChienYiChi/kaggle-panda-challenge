@@ -39,37 +39,36 @@ def run():
     df_train = folds.loc[trn_idx]
         
     df_val = folds.loc[val_idx]
-    # #------single image------
-    # train_dataset = PANDADataset(image_folder=config.DATA_PATH,
-    #                              df=df_train,
-    #                              image_size=config.IMG_SIZE,
-    #                              num_tiles=config.num_tiles,
-    #                              rand=False,
-    #                              transform=get_transforms(phase='train'))
-    # valid_dataset = PANDADataset(image_folder=config.DATA_PATH,
-    #                              df=df_val,
-    #                              image_size=config.IMG_SIZE,
-    #                              num_tiles=config.num_tiles,
-    #                              rand=False, 
-    #                              transform=get_transforms(phase='valid'))
+    #------single image------
+    train_dataset = PANDADataset(image_folder=config.DATA_PATH,
+                                 df=df_train,
+                                 image_size=config.IMG_SIZE,
+                                 num_tiles=config.num_tiles,
+                                 rand=False,
+                                 transform=get_transforms(phase='train'))
+    valid_dataset = PANDADataset(image_folder=config.DATA_PATH,
+                                 df=df_val,
+                                 image_size=config.IMG_SIZE,
+                                 num_tiles=config.num_tiles,
+                                 rand=False, 
+                                 transform=get_transforms(phase='valid'))
 
     ##------image tiles------
-    train_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
-                                df=df_train,
-                                image_size=config.IMG_SIZE,
-                                num_tiles=config.num_tiles,
-                                transform=get_transforms(phase='train'))
-    valid_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
-                                df=df_val,
-                                image_size=config.IMG_SIZE,
-                                num_tiles=config.num_tiles,
-                                transform=get_transforms(phase='valid'))
+    # train_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
+    #                             df=df_train,
+    #                             image_size=config.IMG_SIZE,
+    #                             num_tiles=config.num_tiles,
+    #                             transform=get_transforms(phase='train'))
+    # valid_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
+    #                             df=df_val,
+    #                             image_size=config.IMG_SIZE,
+    #                             num_tiles=config.num_tiles,
+    #                             transform=get_transforms(phase='valid'))
     train_loader = DataLoader(train_dataset, 
                               batch_size=config.batch_size,
                               sampler=RandomSampler(train_dataset),
                               num_workers=12,
-                              pin_memory=True,
-                              drop_last=True)
+                              pin_memory=True)
     val_loader = DataLoader(valid_dataset, 
                             batch_size=config.batch_size,
                             sampler=SequentialSampler(valid_dataset),
@@ -78,7 +77,7 @@ def run():
                             )
 
     device = torch.device("cuda")
-    model = Resnext50Tiles(num_classes=config.num_class)
+    model = SEResNeXt(num_classes=config.num_class)
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)
@@ -100,12 +99,12 @@ def run():
     optimizer.step()
     for epoch in range(1,config.num_epoch+1):
         scheduler.step(epoch-1)
-        # #------regression------
-        # coefficients =train_fn(train_loader,model,optimizer,device,epoch,writer,optimized_rounder,df_train)
-        # metric = eval_fn(val_loader,model,device,epoch,writer,df_val,coefficients)
-        #------classification------
-        train_fn(train_loader,model,optimizer,device,epoch,writer,df_train)
-        metric = eval_fn(val_loader,model,device,epoch,writer,df_val)
+        #------regression------
+        coefficients =train_fn(train_loader,model,optimizer,device,epoch,writer,optimized_rounder,df_train)
+        metric = eval_fn(val_loader,model,device,epoch,writer,df_val,coefficients)
+        # #------classification------
+        # train_fn(train_loader,model,optimizer,device,epoch,writer,df_train)
+        # metric = eval_fn(val_loader,model,device,epoch,writer,df_val)
         score = metric['score']
         val_loss = metric['loss']
         if score > best_score:
