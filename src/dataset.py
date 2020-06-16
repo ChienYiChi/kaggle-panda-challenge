@@ -91,11 +91,11 @@ class  PANDADatasetTiles(Dataset):
         row = self.df.iloc[idx]
         img_id = row.image_id
         tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
-        image = skimage.io.MultiImage(tiff_file)[2]
+        image = skimage.io.MultiImage(tiff_file)[1]
         #img_file = os.path.join(self.image_folder,f'{img_id}.png')
         #image = cv2.imread(img_file)
         #image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-        img_tiles = get_tiles_brs(image,self.image_size,self.num_tiles)
+        img_tiles = get_tiles(image,self.image_size,self.num_tiles)
         images = np.zeros((self.num_tiles,3,self.image_size,self.image_size),np.float32)
         for i,tile in enumerate(img_tiles):
             if self.transform:
