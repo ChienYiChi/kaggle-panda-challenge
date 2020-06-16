@@ -7,12 +7,7 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 
 
 ## To-Do-List
-- [x] regression 
-- [x] classification 
-- [ ] blue ratio selection
-- [x] remove TTA
-- [x] efficientnet with adaptive pooling layer 
-- [ ] use regression for tiles model 
+
 
 ## Experiments Record 
 
@@ -49,7 +44,11 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | resnext50 | 0.85 |0.8497 | 1 | 256 | 20 | 0 | 
 | eb0 | 0.83 | 0.8411 | 0 | 256 | 20 | 8 | 
 
-### E5: 36 x tiles 256
+| type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
+|:--------:|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
+| cls |tiles-resnext50-netvlad | 0.87 | 0.8602 | 0.8884 | 0.8089 | 0 | 256 | 20 | 27 | 8 | 
+
+### E6: 36 x tiles 256
 | type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
 |:--------:|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
 | ordinal regression| eb0 | 0.84 | 0.91 ||| 0 | 256 | 36 | | 0 |
