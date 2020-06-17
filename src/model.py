@@ -204,7 +204,7 @@ class NetVLAD(nn.Module):
         self.init_parameters()
 
     def init_parameters(self):
-        init.normal(self.cluster_weights2, std=1 / math.sqrt(self.feature_size))
+        init.normal_(self.cluster_weights2, std=1 / math.sqrt(self.feature_size))
 
     def forward(self, reshaped_input):
         random_idx = torch.bernoulli(torch.Tensor([0.5]))
@@ -326,7 +326,7 @@ class Resnext50wNetVLAD(nn.Module):
         self.nc = list(m.children())[-1].in_features
         self.netvlad = NetVLAD(cluster_size=num_clusters,max_frames=num_tiles,
                     feature_size=self.nc,truncate=False)
-        self.fc = nn.Linear(12288,num_classes)
+        self.fc = nn.Linear(num_clusters*self.nc,num_classes)
         
     def forward(self, x):
         """
@@ -344,8 +344,41 @@ class Resnext50wNetVLAD(nn.Module):
         return x
 
 
+class EnetNetVLAD(nn.Module):
+    def __init__(self, num_clusters,num_tiles,num_classes,arch='efficientnet-b0'):
+        super().__init__()
+        self.base = EfficientNet.from_pretrained(arch)
+        self.nc = self.base._fc.in_features
+        self.tile = nn.Sequential(
+            nn.BatchNorm2d(self.nc,eps=0.001,momentum=0.01),
+            nn.AdaptiveAvgPool2d(output_size=1),
+            nn.Flatten(),
+            nn.Dropout(p=0.2),
+        )    
+        self.netvlad = NetVLAD(cluster_size=num_clusters,max_frames=num_tiles,
+                    feature_size=self.nc,truncate=False)
+        self.fc = nn.Linear(num_clusters*self.nc,num_classes)
+    
+    def forward(self, x):
+        """
+        Args:
+            x (batch,N,3,h,w):
+        """
+        batch = x.shape[0]
+        shape = x[0].shape
+        n = shape[0]
+        x = x.view(-1,shape[1],shape[2],shape[3]) #x: bs*num_tiles x 3 x H x W
+        x = self.base.extract_features(x) #x: bs*num_tiles x nc
+        x = self.tile(x)
+        x = x.view(batch,n,self.nc)
+        x = self.netvlad(x)
+        x = self.fc(x)
+        return x
+
+
 if __name__=='__main__':
     x = torch.rand(4,12,3,128,128)
-    model = Resnext50wNetVLAD(num_clusters=32,num_tiles=12,alpha=1.,num_classes=6)
+    model = EnetNetVLAD(num_clusters=6,num_tiles=12,num_classes=6)
     output = model(x)
+
     

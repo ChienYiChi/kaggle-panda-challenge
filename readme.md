@@ -7,6 +7,8 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 
 
 ## To-Do-List
+- [ ] attention layer
+- [ ] MOE model
 
 
 ## Experiments Record 
@@ -46,7 +48,8 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 
 | type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
 |:--------:|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
-| cls |tiles-resnext50-netvlad | 0.87 | 0.8602 | 0.8884 | 0.8089 | 0 | 256 | 20 | 27 | 8 | 
+| cls | tiles-resnext50-netvlad | 0.87 | 0.8602 | 0.8884 | 0.8089 | 0 | 256 | 20 | 27 | 8 | 
+| cls | tiles-eb0-netvlad | | 0.8762 | 0.877 | 0.851 | 0 | 256 | 20 | 26 | 8 | 
 
 ### E6: 36 x tiles 256
 | type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
