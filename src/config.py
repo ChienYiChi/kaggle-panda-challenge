@@ -12,7 +12,7 @@ MODEL_PATH = f'/home/jijianyi/workspace/kaggle/logs/panda-challenge/tiles-resnet
 
 num_folds = 5
 seed=42
-batch_size = 32
+batch_size = 16
 lr = 3e-4
 num_epoch =30
 num_class = 1
