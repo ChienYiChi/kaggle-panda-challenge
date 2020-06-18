@@ -77,7 +77,7 @@ def run():
                             )
 
     device = torch.device("cuda")
-    model = EnetNetVLAD(num_clusters=6,num_tiles=config.num_tiles,num_classes=config.num_class)
+    model = ResnetwNetVLAD(num_clusters=6,num_tiles=config.num_tiles,num_classes=config.num_class)
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)

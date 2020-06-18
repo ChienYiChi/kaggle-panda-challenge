@@ -344,6 +344,32 @@ class Resnext50wNetVLAD(nn.Module):
         return x
 
 
+class ResnetwNetVLAD(nn.Module):
+    def __init__(self, num_clusters,num_tiles,num_classes,pretrained=True):
+        super().__init__()
+        m = models.resnet34(pretrained=pretrained)
+        self.enc = nn.Sequential(*list(m.children())[:-1])       
+        self.nc = list(m.children())[-1].in_features
+        self.netvlad = NetVLAD(cluster_size=num_clusters,max_frames=num_tiles,
+                    feature_size=self.nc,truncate=False)
+        self.fc = nn.Linear(num_clusters*self.nc,num_classes)
+        
+    def forward(self, x):
+        """
+        Args:
+            x (batch,N,3,h,w):
+        """
+        batch = x.shape[0]
+        shape = x[0].shape
+        n = shape[0]
+        x = x.view(-1,shape[1],shape[2],shape[3]) #x: bs*num_tiles x 3 x H x W
+        x = self.enc(x) #x: bs*num_tiles x nc
+        x = x.view(batch,n,self.nc)
+        x = self.netvlad(x)
+        x = self.fc(x)
+        return x
+
+
 class EnetNetVLAD(nn.Module):
     def __init__(self, num_clusters,num_tiles,num_classes,arch='efficientnet-b0'):
         super().__init__()
@@ -378,7 +404,7 @@ class EnetNetVLAD(nn.Module):
 
 if __name__=='__main__':
     x = torch.rand(4,12,3,128,128)
-    model = EnetNetVLAD(num_clusters=6,num_tiles=12,num_classes=6)
+    model = ResnetwNetVLAD(num_clusters=6,num_tiles=12,num_classes=6)
     output = model(x)
 
     
