@@ -9,9 +9,9 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 ## To-Do-List
 - [ ] attention layer
 - [ ] MOE model
-- [ ] more tiles for tiles model 
+- [x] more tiles for tiles model 
 - [ ] efficientnet b1 b2  
-- [ ] tiles resnet34
+- [x] tiles resnet34
 - [ ] tiles model regression
 
 
@@ -55,7 +55,8 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | cls | tiles-resnext50-netvlad | 0.87 | 0.8602 | 0.8884 | 0.8089 | 0 | 256 | 20 | 27 | 8 | 
 | cls | tiles-eb0-netvlad | 0.84 | 0.8762 | 0.877 | 0.851 | 0 | 256 | 20 | 26 | 8 | 
 | cls | tiles-eb0-netvlad | 0.85 | 0.8834 | 0.8714 | 0.8692 | 0 | 256 | 36 | 22 | 8 | 
-| cls | tiles-resnet34-netvlad | 
+| cls | tiles-resnet34-netvlad | 0.84 | 0.8745 | 0.8697 | 0.8522 | 0 | 256 | 20 | 28 | 8 | 
+| reg | tiles-eb0-netvlad | | 0.8777 | 0.8820 | 0.8470 | 0 | 256 | 20 | 29 | 8 | 
 
 ### E6: 36 x tiles 256
 | type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |

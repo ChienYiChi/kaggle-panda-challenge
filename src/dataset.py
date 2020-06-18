@@ -107,7 +107,7 @@ class  PANDADatasetTiles(Dataset):
 
         label = row.isup_grade
         
-        return torch.tensor(images).float(), torch.tensor(label).long()
+        return torch.tensor(images).float(), torch.tensor(label).float()
 
 
 def blue_ratio_selection(img):
