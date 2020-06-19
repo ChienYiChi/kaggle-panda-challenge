@@ -8,12 +8,15 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 
 ## To-Do-List
 - [ ] attention layer
-- [ ] MOE model
-- [x] more tiles for tiles model 
+- [x] MOE model
+- [x] *more tiles for tiles model* 
 - [ ] efficientnet b1 b2  
 - [x] tiles resnet34
-- [x] tiles model regression
-- [ ] change num clusters
+- [x] *tiles model regression*
+- [x] change num clusters
+- [x] move to fold 1 
+- [ ] blue ratio selection
+- [ ] gradient accumulation of 32
 
 
 ## Experiments Record 
@@ -58,6 +61,10 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | cls | tiles-eb0-netvlad | 0.85 | 0.8834 | 0.8714 | 0.8692 | 0 | 256 | 36 | 22 | 8 | 
 | cls | tiles-resnet34-netvlad | 0.84 | 0.8745 | 0.8697 | 0.8522 | 0 | 256 | 20 | 28 | 8 | 
 | reg | tiles-eb0-netvlad | 0.85 | 0.8777 | 0.8820 | 0.8470 | 0 | 256 | 20 | 29 | 8 | 
+| reg | tiles-eb0-netvlad-brs | 
+| reg | tiles-eb0-netvlad | **0.88** | 0.8952 | 0.8976 | 0.8704 | 0 | 256 | 36 | 28 | 8 | 
+| reg | tiles-eb0-netvlad | | | | | 1 | 256 | 36 | | | 
+
 
 ### E6: 36 x tiles 256
 | type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
