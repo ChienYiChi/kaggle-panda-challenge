@@ -50,7 +50,7 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | resnext50 | 0.86 | 0.8474 | 0 | 256 | 20 | 8 |
 | resnext50 | 0.86|  0.8635 | 0 | 256 | 32 | 8 |
 | resnetx50 | 0.85 | 0.8600 | 0 | 256 | 20 | 8 |
-| resnext50 | **0.88** | 0.8497 | 1 | 256 | 20 | 8 |
+| resnext50 | 0.88 | 0.8497 | 1 | 256 | 20 | 8 |
 | resnext50 | 0.85 |0.8497 | 1 | 256 | 20 | 0 | 
 | eb0 | 0.83 | 0.8411 | 0 | 256 | 20 | 8 | 
 
@@ -62,8 +62,8 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | cls | tiles-resnet34-netvlad | 0.84 | 0.8745 | 0.8697 | 0.8522 | 0 | 256 | 20 | 28 | 8 | 
 | reg | tiles-eb0-netvlad | 0.85 | 0.8777 | 0.8820 | 0.8470 | 0 | 256 | 20 | 29 | 8 | 
 | reg | tiles-eb0-netvlad-brs | 
-| reg | tiles-eb0-netvlad | **0.88** | 0.8952 | 0.8976 | 0.8704 | 0 | 256 | 36 | 28 | 8 | 
-| reg | tiles-eb0-netvlad | | | | | 1 | 256 | 36 | | | 
+| reg | tiles-eb0-netvlad | 0.88 | 0.8952 | 0.8976 | 0.8704 | 0 | 256 | 36 | 28 | 8 | 
+| reg | tiles-eb0-netvlad | **0.89** | 0.886 | 0.8979 | 0.8464 | 1 | 256 | 36 | 22 | ]8 | 
 
 
 ### E6: 36 x tiles 256
