@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn 
 import torch.nn.functional as F
 from torchvision import models
+import torch.nn.init as init
+import math
+from torch.autograd import Variable
 import pretrainedmodels
 from efficientnet_pytorch import EfficientNet
 from efficientnet_pytorch.utils import MemoryEfficientSwish
@@ -134,59 +137,6 @@ class SEResNeXt(nn.Module):
         return x 
 
 
-# class NetVLAD(nn.Module):
-#     """NetVLAD layer implementation"""
-
-#     def __init__(self, num_clusters, num_tiles,feature_size, alpha=100.0,
-#                 normalize_input=True):
-#         """
-#         Args:
-#             num_clusters : int
-#                 The number of clusters
-#             num_tiles : int
-#                 Dimension of descriptors
-#             alpha : float
-#                 Parameter of initialization. Larger value is harder assignment.
-#             normalize_input : bool
-#                 If true, descriptor-wise L2 normalization is applied to input.
-#         """
-#         super(NetVLAD, self).__init__()
-#         self.num_clusters = num_clusters
-#         self.num_tiles = num_tiles
-#         self.alpha = alpha
-#         self.normalize_input = normalize_input
-#         self.fc = nn.Linear(feature_size,num_clusters)
-#         self.centroids = nn.Parameter(torch.rand(num_clusters,num_tiles))
-        
-#     def forward(self, x):
-#         """
-#         Args:
-#             x: [batch,num_tiles,feature_size]
-#         """
-#         if self.normalize_input:
-#             x = F.normalize(x, p=2, dim=1)  # across descriptor dim
-
-#         # soft-assignment
-#         soft_assign = self.fc(x) #[batch,num_tiles,num_clusters]
-#         soft_assign = F.softmax(soft_assign, dim=-1).permute(0,2,1)
-        
-#         # calculate residuals to each clusters
-#         residual = x.expand(self.num_clusters, -1, -1, -1).permute(1, 0, 2, 3) - \
-#             self.centroids.expand(x.size(-1), -1, -1).permute(1, 2, 0).unsqueeze(0)
-#         residual *= soft_assign.unsqueeze(3)
-#         vlad = residual.sum(dim=-1)
-
-#         vlad = F.normalize(vlad, p=2, dim=2)  # intra-normalization
-#         vlad = vlad.view(x.size(0), -1)  # flatten
-#         vlad = F.normalize(vlad, p=2, dim=1)  # L2 normalize
-
-#         return vlad
-
-import torch.nn.init as init
-import math
-from torch.autograd import Variable
-
-
 class NetVLAD(nn.Module):
     def __init__(self, feature_size, max_frames,cluster_size, add_bn=False, truncate=True):
         super(NetVLAD, self).__init__()
@@ -229,93 +179,6 @@ class NetVLAD(nn.Module):
         if self.training == False:
             self.first = 1 - self.first
         return vlad
-
-
-class selfAttn(nn.Module):
-    def __init__(self, feature_size, time_step, hidden_size, num_desc):
-        super(selfAttn, self).__init__()
-        self.linear_1 = nn.Linear(feature_size, hidden_size)
-        self.linear_2 = nn.Linear(hidden_size, num_desc)
-        self.num_desc = num_desc
-        #self.init_weights()
-    
-    def init_weights(self):
-        self.linear_1.weight.data.uniform_(-0.1, 0.1)
-        #self.linear_2.weight.data.uniform_(-0.1, 0.1)
-
-    def forward(self, model_input):   # (batch_size, time_step, feature_size)
-        reshaped_input = model_input  # (batch_size, feature_step, time_step)
-        s1 = F.tanh(self.linear_1(reshaped_input))  # (batch_size, feature_size, hidden_size)
-        A = F.sigmoid(self.linear_2(s1))
-        M = torch.bmm(model_input.permute(0, 2, 1), A).permute(0, 2, 1).contiguous()  # (batch_size, time_step, num_desc)
-        AAT = torch.bmm(A.permute(0, 2, 1), A)
-        I = Variable(torch.eye(self.num_desc)).cuda()
-        P = torch.norm(AAT - I, 2)
-        penal = P * P / model_input.shape[0]
-        return M
-
-
-class MoeModel(nn.Module):
-    def __init__(self, num_classes, feature_size, num_mixture=2):
-        super(MoeModel, self).__init__()
-        self.gating = nn.Linear(feature_size, num_classes * (num_mixture+1))
-        self.expert = nn.Linear(feature_size, num_classes * num_mixture)
-        self.num_mixture = num_mixture
-        self.num_classes = num_classes
-    def forward(self, model_input):
-        gate_activations = self.gating(model_input)
-        gate_dist = nn.Softmax(dim=1)(gate_activations.view([-1, self.num_mixture + 1]))
-        expert_activations = self.expert(model_input)
-        expert_dist = nn.Softmax(dim=1)(expert_activations.view([-1, self.num_mixture]))
-        probabilities_by_class_and_batch = torch.sum(
-            gate_dist[:, :self.num_mixture] * expert_dist, 1)
-        return probabilities_by_class_and_batch.view([-1, self.num_classes])
-
-
-class NetVLADModelLF(nn.Module):
-    def __init__(self, cluster_size, max_frames, feature_size, hidden_size, num_classes, add_bn=False, use_moe=True, truncate=True, attention=False, use_VLAD=False):
-        super(NetVLADModelLF, self).__init__()
-        self.feature_size = feature_size
-        self.max_frames = max_frames
-        self.cluster_size = cluster_size
-        self.video_NetVLAD = NetVLAD(self.feature_size, 100, self.cluster_size, truncate=truncate, add_bn=add_bn) if use_VLAD else None
-        self.batch_norm_input = nn.BatchNorm1d(feature_size, eps=1e-3, momentum=0.01)
-        self.batch_norm_activ = nn.BatchNorm1d(hidden_size, eps=1e-3, momentum=0.01)
-        if use_VLAD:
-            self.linear_1 = nn.Linear(cluster_size * self.feature_size / 2, hidden_size) if truncate else nn.Linear(cluster_size * self.feature_size, hidden_size)
-        else:
-            self.linear_1 = nn.Linear(self.feature_size, hidden_size)
-        self.relu = nn.ReLU6()
-        self.linear_2 = nn.Linear(hidden_size, num_classes)
-        self.s = nn.Sigmoid()
-        self.moe = MoeModel(num_classes, hidden_size) if use_moe else None
-        self.Attn = selfAttn(feature_size, max_frames, 4096, 100) if attention else None
-        self.add_bn = add_bn
-        self.truncate = truncate
-        self.use_moe = use_moe
-        self.attention = attention
-        self.use_VLAD = use_VLAD
-
-    def forward(self, model_input):
-        #import pdb;pdb.set_trace()
-        reshaped_input = model_input.view([-1, self.feature_size])
-        if self.add_bn:
-            reshaped_input = self.batch_norm_input(reshaped_input)
-        if self.attention:
-            model_input = self.Attn(reshaped_input.view([-1, self.max_frames, self.feature_size]))
-        if self.use_VLAD:
-            output = self.video_NetVLAD(model_input.view([-1, self.feature_size]))
-        else:
-            output, _ = torch.max(model_input.view([model_input.shape[0], -1, self.feature_size]), dim=1)
-        if self.add_bn:
-            activation = self.batch_norm_activ(self.linear_1(output))
-            #activation = self.linear_1(output)
-        activation = self.relu(activation)
-        if self.use_moe:
-            logits = self.moe(activation)
-        else:
-            logits = self.s(self.linear_2(activation))
-        return logits
 
 
 class Resnext50wNetVLAD(nn.Module):
@@ -384,7 +247,7 @@ class EnetNetVLAD(nn.Module):
         self.netvlad = NetVLAD(cluster_size=num_clusters,max_frames=num_tiles,
                     feature_size=self.nc,truncate=False)
         self.fc = nn.Linear(num_clusters*self.nc,num_classes)
-    
+
     def forward(self, x):
         """
         Args:
@@ -401,10 +264,10 @@ class EnetNetVLAD(nn.Module):
         x = self.fc(x)
         return x
 
-
 if __name__=='__main__':
-    x = torch.rand(4,12,3,128,128)
-    model = ResnetwNetVLAD(num_clusters=6,num_tiles=12,num_classes=6)
+    x = torch.rand(4,36,3,128,128).cuda()
+    model = EnetNetVLAD(num_clusters=6,num_tiles=36,num_classes=6).cuda()
     output = model(x)
+    print(output.size())
 
     

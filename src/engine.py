@@ -17,22 +17,19 @@ threshold = [0.5,1.5,2.5,3.5,4.5]
 def quadratic_weighted_kappa(y_hat, y):
     return cohen_kappa_score(y_hat, y, weights='quadratic')
 
-#------classification------
-# loss_fn = nn.CrossEntropyLoss()
+if config.model_type=='cls':
+    loss_fn = nn.CrossEntropyLoss()
+elif config.model_type=='ord_reg':
+    loss_fn = nn.BCEWithLogitsLoss()
+elif config.model_type=='reg':
+    def loss_fn(outputs,targets):
+        outputs = outputs.view(-1)
+        # return nn.SmoothL1Loss()(outputs,targets)
+        return nn.MSELoss()(outputs,targets)
+else:
+    raise TypeError
 
-#------ordinal regression------
-# loss_fn = nn.BCEWithLogitsLoss()
-
-#------regression------
-def loss_fn(outputs,targets):
-    outputs = outputs.view(-1)
-    # return nn.SmoothL1Loss()(outputs,targets)
-    return nn.MSELoss()(outputs,targets)
-
-#------regression------
-def train_fn(data_loader,model,optimizer,device,epoch,writer,optimized_rounder,df):
-#------classification------
-# def train_fn(data_loader,model,optimizer,device,epoch,writer,df):
+def train_fn(data_loader,model,optimizer,device,epoch,writer,df,optimized_rounder=None):
     model.train()
     fin_preds = []
     fin_targets = []
@@ -59,34 +56,31 @@ def train_fn(data_loader,model,optimizer,device,epoch,writer,optimized_rounder,d
         optimizer.step()
         pbar.set_description("loss:%.5f"%loss.item())
         avg_loss += loss.item()
-        # ------regression------
-        fin_preds.append(outputs.cpu().detach().numpy())
-        fin_targets.append(labels.cpu().detach().numpy())
-    
-    fin_preds = np.concatenate(fin_preds)
-    fin_targets = np.concatenate(fin_targets)
-    optimized_rounder.fit(fin_preds,fin_targets)
-    coefficients = optimized_rounder.coefficients()
-    fin_preds = optimized_rounder.predict(fin_preds,coefficients)
-    qwk = quadratic_weighted_kappa(fin_targets,fin_preds)
-    qwk_k = quadratic_weighted_kappa(fin_targets[df['data_provider']=='karolinska'],
-                                    fin_preds[df['data_provider']=='karolinska'])
-    qwk_r = quadratic_weighted_kappa(fin_targets[df['data_provider']=='radboud'],
-                                    fin_preds[df['data_provider']=='radboud'])
+        if config.model_type=='reg':
+            fin_preds.append(outputs.cpu().detach().numpy())
+            fin_targets.append(labels.cpu().detach().numpy())
+    if config.model_type=='reg': 
+        fin_preds = np.concatenate(fin_preds)
+        fin_targets = np.concatenate(fin_targets)
+        optimized_rounder.fit(fin_preds,fin_targets)
+        coefficients = optimized_rounder.coefficients()
+        fin_preds = optimized_rounder.predict(fin_preds,coefficients)
+        qwk = quadratic_weighted_kappa(fin_targets,fin_preds)
+        qwk_k = quadratic_weighted_kappa(fin_targets[df['data_provider']=='karolinska'],
+                                        fin_preds[df['data_provider']=='karolinska'])
+        qwk_r = quadratic_weighted_kappa(fin_targets[df['data_provider']=='radboud'],
+                                        fin_preds[df['data_provider']=='radboud'])
     avg_loss /= len(data_loader)
-    #------regression------
-    logging.info(f"Epoch {epoch} | lr {optimizer.param_groups[0]['lr']:.7f} | train loss {avg_loss} | kappa all:{qwk}, karolinska:{qwk_k}, radboud:{qwk_r} | coefficients: {coefficients}")
-    #------classification------
-    # logging.info(f"Epoch {epoch} | lr {optimizer.param_groups[0]['lr']:.7f} | train loss {avg_loss} ")
-
+    if config.model_type=='reg':
+        logging.info(f"Epoch {epoch} | lr {optimizer.param_groups[0]['lr']:.7f}| train loss {avg_loss} | kappa all:{qwk}, karolinska:{qwk_k}, radboud:{qwk_r} | coefficients:{coefficients}")
+    else:
+        logging.info(f"Epoch {epoch} | lr {optimizer.param_groups[0]['lr']:.7f} | train loss {avg_loss} ")
+ 
     writer.add_scalar('train_loss',avg_loss,epoch+1)
-    #------regression------
-    return coefficients
+    if config.model_type=='reg':
+        return coefficients
     
-##------regression------
-def eval_fn(data_loader,model,device,epoch,writer,df,coefficients):
-#------classification-------
-# def eval_fn(data_loader,model,device,epoch,writer,df):
+def eval_fn(data_loader,model,device,epoch,writer,df,coefficients=None):
     optimized_rounder = OptimizedRounder()
     model.eval()
     fin_targets = []
@@ -102,35 +96,30 @@ def eval_fn(data_loader,model,device,epoch,writer,df,coefficients):
             outputs = model(images)
         loss = loss_fn(outputs,labels)
         avg_loss += loss.item()
-        # #------classification------
-        # outputs = torch.softmax(outputs,dim=1)
-        # fin_preds.extend(outputs.cpu().detach().numpy().argmax(1))
-
-        # #------ordinal regression------
-        # outputs = outputs.sigmoid().sum(1).round()
-        # labels = labels.sum(1)
-
-        #------regression------
-        # do noting to the output logits 
-
-        fin_preds.extend(outputs.cpu().detach().numpy())
+        if config.model_type=='cls':
+            outputs = torch.softmax(outputs,dim=1)
+            fin_preds.extend(outputs.cpu().detach().numpy().argmax(1))
+        else:
+            if config.model_type=='ord_reg':
+                outputs = outputs.sigmoid().sum(1).round()
+                labels = labels.sum(1)
+            fin_preds.extend(outputs.cpu().detach().numpy())
         fin_targets.extend(labels.cpu().detach().numpy())
-    
+ 
     avg_loss /= len(data_loader)
 
     fin_targets = np.array(fin_targets)
     fin_preds = np.array(fin_preds)
-    
-    # #------regression------
-    # fin_preds = np.concatenate(fin_preds)
-    # fin_preds[fin_preds<threshold[0]]=0
-    # fin_preds[(fin_preds>=threshold[0])&(fin_preds<threshold[1])]=1
-    # fin_preds[(fin_preds>=threshold[1])&(fin_preds<threshold[2])]=2
-    # fin_preds[(fin_preds>=threshold[2])&(fin_preds<threshold[3])]=3
-    # fin_preds[(fin_preds>=threshold[3])&(fin_preds<threshold[4])]=4
-    # fin_preds[fin_preds>=threshold[4]]=5
-
-    fin_preds = optimized_rounder.predict(fin_preds,coefficients)
+   
+    if config.model_type=='reg':
+        # fin_preds = np.concatenate(fin_preds)
+        # fin_preds[fin_preds<threshold[0]]=0
+        # fin_preds[(fin_preds>=threshold[0])&(fin_preds<threshold[1])]=1
+        # fin_preds[(fin_preds>=threshold[1])&(fin_preds<threshold[2])]=2
+        # fin_preds[(fin_preds>=threshold[2])&(fin_preds<threshold[3])]=3
+        # fin_preds[(fin_preds>=threshold[3])&(fin_preds<threshold[4])]=4
+        # fin_preds[fin_preds>=threshold[4]]=5
+        fin_preds = optimized_rounder.predict(fin_preds,coefficients)
     
     qwk = quadratic_weighted_kappa(fin_targets,fin_preds)
     qwk_k = quadratic_weighted_kappa(fin_targets[df['data_provider']=='karolinska'],

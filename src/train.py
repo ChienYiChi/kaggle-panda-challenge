@@ -77,7 +77,7 @@ def run():
                             )
 
     device = torch.device("cuda")
-    model = EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class)
+    model = ResnetwNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class)
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)
@@ -94,17 +94,18 @@ def run():
 
     best_score = 0.
     best_loss = 100.
-    optimized_rounder = OptimizedRounder()
+    if config.model_type!='cls':
+        optimized_rounder = OptimizedRounder()
     optimizer.zero_grad()
     optimizer.step()
     for epoch in range(1,config.num_epoch+1):
         scheduler.step(epoch-1)
-        #------regression------
-        coefficients =train_fn(train_loader,model,optimizer,device,epoch,writer,optimized_rounder,df_train)
-        metric = eval_fn(val_loader,model,device,epoch,writer,df_val,coefficients)
-        # #------classification------
-        # train_fn(train_loader,model,optimizer,device,epoch,writer,df_train)
-        # metric = eval_fn(val_loader,model,device,epoch,writer,df_val)
+        if config.model_type=='cls':
+            train_fn(train_loader,model,optimizer,device,epoch,writer,df_train)
+            metric = eval_fn(val_loader,model,device,epoch,writer,df_val)
+        else:
+            coefficients =train_fn(train_loader,model,optimizer,device,epoch,writer,df_train,optimized_rounder)
+            metric = eval_fn(val_loader,model,device,epoch,writer,df_val,coefficients)
         score = metric['score']
         val_loss = metric['loss']
         if score > best_score:
