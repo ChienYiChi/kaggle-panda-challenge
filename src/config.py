@@ -1,20 +1,20 @@
 DEBUG = False
 model_type = "reg" # reg,cls,ord_reg
-multi_gpu = True
-tiff = False
+multi_gpu = False
+tiff = True
 apex = True
 if multi_gpu:
     apex = False
 IMG_SIZE = 256
-num_tiles = 20
+num_tiles = 36
 num_cluster = 6
-fold = 0
+fold = 1
 fold_csv = './data/folds.csv'
-DATA_PATH = f'/home/jijianyi/dataset/train_original_2/'
-MODEL_PATH=f'/home/jijianyi/workspace/kaggle/logs/panda-challenge/tiles-resnetiles-resnet34-netvlad-c{num_cluster}-{num_tiles}-{IMG_SIZE}-f{fold}/'
+DATA_PATH = f'/mnt/data/prostate-cancer-grade-assessment/train_images/'
+MODEL_PATH=f'/home/jijianyi/workspace/kaggle/logs/panda-challenge/tiles-eb4-netvlad-{model_type}-c{num_cluster}-{num_tiles}-{IMG_SIZE}-f{fold}/'
 num_folds = 5
 seed=42
-batch_size = 16
+batch_size = 4
 lr = 3e-4
 num_epoch =30
 num_class = 1
