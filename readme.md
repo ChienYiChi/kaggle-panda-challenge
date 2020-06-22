@@ -61,9 +61,9 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | cls | tiles-eb0-netvlad | 0.85 | 0.8834 | 0.8714 | 0.8692 | 0 | 256 | 36 | 22 | 8 | 
 | cls | tiles-resnet34-netvlad | 0.84 | 0.8745 | 0.8697 | 0.8522 | 0 | 256 | 20 | 28 | 8 | 
 | reg | tiles-eb0-netvlad | 0.85 | 0.8777 | 0.8820 | 0.8470 | 0 | 256 | 20 | 29 | 8 | 
-| reg | tiles-eb0-netvlad-brs | 
 | reg | tiles-eb0-netvlad | 0.88 | 0.8952 | 0.8976 | 0.8704 | 0 | 256 | 36 | 28 | 8 | 
-| reg | tiles-eb0-netvlad | **0.89** | 0.886 | 0.8979 | 0.8464 | 1 | 256 | 36 | 22 | ]8 | 
+| reg | tiles-eb0-netvlad | 0.89 | 0.886 | 0.8979 | 0.8464 | 1 | 256 | 36 | 22 | 8 | 
+| reg | tiles-eb0-netvlad | **0.90** | 0.8826 | 0.9047 | 0.8335 | 1 | 256 | 36 | 26 | 8 | 
 
 
 ### E6: 36 x tiles 256
