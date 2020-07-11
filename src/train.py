@@ -18,6 +18,7 @@ from utils import (
 from engine import train_fn,eval_fn,OptimizedRounder
 from dataset import PANDADataset,PANDADatasetTiles,get_transforms
 from model import * 
+from modules import EfficientModel
 
 def run():
     seed_torch(seed=config.seed)
@@ -27,6 +28,9 @@ def run():
 
     folds = pd.read_csv(config.fold_csv)
     folds.head()
+    if config.tile_stats_csv:
+        attention_df = pd.read_csv(config.tile_stats_csv)
+        attention_df.head()
     
     #train val split
     if config.DEBUG:
@@ -41,29 +45,32 @@ def run():
     df_val = folds.loc[val_idx]
     # #------single image------
     # train_dataset = PANDADataset(image_folder=config.DATA_PATH,
-    #                              df=df_train,
-    #                              image_size=config.IMG_SIZE,
-    #                              num_tiles=config.num_tiles,
-    #                              rand=False,
-    #                              transform=get_transforms(phase='train'))
+    #                             df=df_train,
+    #                             image_size=config.IMG_SIZE,
+    #                             num_tiles=config.num_tiles,
+    #                             rand=False,
+    #                             transform=get_transforms(phase='train'))
     # valid_dataset = PANDADataset(image_folder=config.DATA_PATH,
-    #                              df=df_val,
-    #                              image_size=config.IMG_SIZE,
-    #                              num_tiles=config.num_tiles,
-    #                              rand=False, 
-    #                              transform=get_transforms(phase='valid'))
+    #                             df=df_val,
+    #                             image_size=config.IMG_SIZE,
+    #                             num_tiles=config.num_tiles,
+    #                             rand=False, 
+    #                             transform=get_transforms(phase='valid'))
 
     #------image tiles------
     train_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
                                 df=df_train,
                                 image_size=config.IMG_SIZE,
                                 num_tiles=config.num_tiles,
-                                transform=get_transforms(phase='train'))
+                                transform=get_transforms(phase='train'),
+                                attention_df= attention_df)
     valid_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
                                 df=df_val,
                                 image_size=config.IMG_SIZE,
                                 num_tiles=config.num_tiles,
-                                transform=get_transforms(phase='valid'))
+                                transform=get_transforms(phase='valid'),
+                                attention_df=attention_df)
+
     train_loader = DataLoader(train_dataset, 
                               batch_size=config.batch_size,
                               sampler=RandomSampler(train_dataset),
@@ -77,16 +84,22 @@ def run():
                             )
 
     device = torch.device("cuda")
-    model = EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch='efficientnet-b4')
+    model=EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch='efficientnet-b0')
+    #model = EfficientModel(c_out=6,n_tiles=config.num_tiles,
+    #                       tile_size=config.IMG_SIZE,
+    #                       name='efficientnet-b0',
+    #                       strategy='bag',
+    #                       head='attention')
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)
+    if config.ckpt_path:
+        model.load_state_dict(torch.load(config.ckpt_path))
     warmup_factor = 10 
     warmup_epo = 1
     optimizer = Adam(model.parameters(), lr=config.lr/warmup_factor)
     scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, config.num_epoch-warmup_epo)
     scheduler = GradualWarmupScheduler(optimizer, multiplier=warmup_factor, total_epoch=warmup_epo, after_scheduler=scheduler_cosine)
-
     
     if config.apex:
         model, optimizer = amp.initialize(model, optimizer, opt_level="O1", verbosity=0)
@@ -94,13 +107,14 @@ def run():
 
     best_score = 0.
     best_loss = 100.
-    if config.model_type!='cls':
+    if config.model_type=='reg':
         optimized_rounder = OptimizedRounder()
     optimizer.zero_grad()
     optimizer.step()
     for epoch in range(1,config.num_epoch+1):
-        scheduler.step(epoch-1)
-        if config.model_type=='cls':
+        if scheduler:
+            scheduler.step(epoch-1)
+        if config.model_type!='reg':
             train_fn(train_loader,model,optimizer,device,epoch,writer,df_train)
             metric = eval_fn(val_loader,model,device,epoch,writer,df_val)
         else:
