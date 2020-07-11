@@ -6,19 +6,6 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 `pip install -r requirements.txt`
 
 
-## To-Do-List
-- [ ] attention layer
-- [x] MOE model
-- [x] *more tiles for tiles model* 
-- [ ] efficientnet b1 b2  
-- [x] tiles resnet34
-- [x] *tiles model regression*
-- [x] change num clusters
-- [x] move to fold 1 
-- [ ] blue ratio selection
-- [ ] gradient accumulation of 32
-
-
 ## Experiments Record 
 
 ### E1: Classification vs Regression 
@@ -63,7 +50,9 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | reg | tiles-eb0-netvlad | 0.85 | 0.8777 | 0.8820 | 0.8470 | 0 | 256 | 20 | 29 | 8 | 
 | reg | tiles-eb0-netvlad | 0.88 | 0.8952 | 0.8976 | 0.8704 | 0 | 256 | 36 | 28 | 8 | 
 | reg | tiles-eb0-netvlad | 0.89 | 0.886 | 0.8979 | 0.8464 | 1 | 256 | 36 | 22 | 8 | 
-| reg | tiles-eb0-netvlad | **0.90** | 0.8826 | 0.9047 | 0.8335 | 1 | 256 | 36 | 26 | 8 | 
+| reg | tiles-eb4-netvlad | **0.90** | 0.8826 | 0.9047 | 0.8335 | 1 | 256 | 36 | 26 | 8 | 
+| cls | tiles-eb0-attention | | 0.8651 | 0.8867 | 0.8152 | 1 | 256 | 64 | 22 | |
+| reg | tiles-eb0-netvlad with model above to select tiles | 0.88 | 0.8833 | 0.9034 | 0.8367 | 1 | 256 | 16 | 27 | 8 TTA only for score model|  
 
 
 ### E6: 36 x tiles 256
