@@ -6,6 +6,10 @@ import os
 import config
 from sklearn.model_selection import StratifiedKFold
 from tqdm import tqdm 
+import multiprocessing
+import dataset
+import glob 
+
 
 def crop_white(image: np.ndarray) -> np.ndarray:
     assert image.shape[2] == 3
@@ -76,8 +80,58 @@ def train_val_split():
     df_train.head()
 
 
+def images_to_tiles(slide_paths,save_path,img_size,num_tiles,start_ind,end_ind):
+    for sp in slide_paths[start_ind:end_ind+1]:
+        name = sp.split('/')[-1].split('.')[0]
+        img = skimage.io.MultiImage(sp)[1]
+        shape = img.shape
+        best_tiles = dataset.get_tiles(img,img_size,num_tiles)
+        tile_root_path = os.path.join(save_path,name)
+        os.mkdir(tile_root_path)
+        for i in range(num_tiles):
+            tile_path = os.path.join(tile_root_path,str(i)+'.png')
+            skimage.io.imsave(tile_path,best_tiles[i])
+    return (start_ind,end_ind) 
+
+
+def multiprocess_make_images_tiles():
+    TILE_SIZE = 256 
+    NUM_TILES = 64
+    orig_path = '/mnt/data/prostate-cancer-grade-assessment/train_images/'
+    save_path = '/mnt/data/prostate-cancer-grade-assessment/train_tiles/'
+    os.mkdir(save_path)
+
+    num_processes = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(num_processes)     
+    
+    train_image_pathes = glob.glob(orig_path+"*.tiff")
+    num_train_images = len(train_image_pathes)
+    images_per_process = num_train_images/num_processes
+
+    tasks = []
+    for num_process in range(1,num_processes+1):
+        start_index = (num_process -1)*images_per_process+1
+        end_index = num_process * images_per_process
+        start_index = int(start_index)
+        end_index = int(end_index)
+        tasks.append((train_image_pathes,save_path,TILE_SIZE,NUM_TILES,start_index,end_index))
+        if start_index == end_index:
+            print("Task #" + str(num_process) + ": Process slide " + str(start_index))
+        else:
+            print("Task #" + str(num_process) + ": Process slides " + str(start_index) + " to " + str(end_index))
+
+    #start tasks
+    results = []
+    for t in tasks:
+        results.append(pool.apply_async(images_to_tiles, t))
+    
+    for result in results:
+        (start_ind,end_ind) = result.get()
+        if start_ind==end_ind:
+            print("Done converting slide %d" % start_ind)
+        else:
+            print("Done converting slides %d through %d" % (start_ind,end_ind))
+
+
 if __name__ == "__main__":
-    # train_val_split()
-    # save_image()
-    # save_crop_white()
-    save_image_fix()
+    multiprocess_make_images_tiles()

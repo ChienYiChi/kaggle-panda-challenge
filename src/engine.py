@@ -59,6 +59,7 @@ def train_fn(data_loader,model,optimizer,device,epoch,writer,df,optimized_rounde
         if config.model_type=='reg':
             fin_preds.append(outputs.cpu().detach().numpy())
             fin_targets.append(labels.cpu().detach().numpy())
+        del outputs,labels
     if config.model_type=='reg': 
         fin_preds = np.concatenate(fin_preds)
         fin_targets = np.concatenate(fin_targets)
