@@ -67,17 +67,17 @@ def run():
     train_loader = DataLoader(train_dataset, 
                               batch_size=config.batch_size,
                               sampler=RandomSampler(train_dataset),
-                              num_workers=8,
+                              num_workers=12,
                               pin_memory=True)
     val_loader = DataLoader(valid_dataset, 
                             batch_size=config.batch_size,
                             sampler=SequentialSampler(valid_dataset),
-                            num_workers=8,
+                            num_workers=12,
                             pin_memory=True
                             )
 
     device = torch.device("cuda")
-    model = EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch='efficientnet-b4')
+    model = EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch='efficientnet-b0')
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)
