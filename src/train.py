@@ -84,7 +84,7 @@ def run():
                             )
 
     device = torch.device("cuda")
-    model=EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch='efficientnet-b0')
+    model=EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch='efficientnet-b4')
     #model = EfficientModel(c_out=6,n_tiles=config.num_tiles,
     #                       tile_size=config.IMG_SIZE,
     #                       name='efficientnet-b0',

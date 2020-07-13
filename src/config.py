@@ -8,13 +8,13 @@ apex = True
 if multi_gpu:
     apex = False
 IMG_SIZE = 256
-num_tiles = 36
+num_tiles = 16
 num_cluster = 6
 fold = 1
 fold_csv = './data/folds.csv'
 tile_stats_csv = './data/tile_stats.csv'
 DATA_PATH = f'/mnt/data/prostate-cancer-grade-assessment/train_tiles/'
-MODEL_PATH=f'/home/jijianyi/workspace/kaggle/logs/panda-challenge/tiles-eb0-netvlad-attention-{model_type}-{num_tiles}-{IMG_SIZE}-f{fold}/'
+MODEL_PATH=f'/home/jijianyi/workspace/kaggle/logs/panda-challenge/tiles-eb4-netvlad-attention-{model_type}-{num_tiles}-{IMG_SIZE}-f{fold}/'
 num_folds = 5
 seed=42
 batch_size = 8
