@@ -8,7 +8,7 @@ import config
 import albumentations
 from tqdm import tqdm 
 import time 
-
+from preprocess import crop_white
 
 class PANDADataset(Dataset):
     def __init__(self,
@@ -32,14 +32,21 @@ class PANDADataset(Dataset):
     def __getitem__(self, index):
         row = self.df.iloc[index]
         img_id = row.image_id
-        if config.tiff:
-            tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
-            image = skimage.io.MultiImage(tiff_file)[1]
+        if config.tile_png:
+            img_tiles = []
+            for i in range(config.num_tiles):
+                tile_path = os.path.join(self.image_folder,img_id,str(i)+'.png')
+                tile = skimage.io.imread(tile_path)
+                img_tiles.append(tile)
         else:
-            img_file = os.path.join(self.image_folder,f'{img_id}.png')
-            image = cv2.imread(img_file)
-            image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-        tiles = get_tiles_brs(image, self.image_size,self.num_tiles)
+            if config.tiff:
+                tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
+                image = skimage.io.MultiImage(tiff_file)[1]
+            else:
+                img_file = os.path.join(self.image_folder,f'{img_id}.png')
+                image = cv2.imread(img_file)
+                image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+            img_tiles = get_tiles_brs(image, self.image_size,self.num_tiles)
 
         if self.rand:
             idxes = np.random.choice(list(range(self.num_tiles)), self.num_tiles, replace=False)
@@ -53,7 +60,7 @@ class PANDADataset(Dataset):
                 i = h * n_row_tiles + w
     
                 if len(tiles) > idxes[i]:
-                    this_img = tiles[idxes[i]]
+                    this_img = img_tiles[idxes[i]]
                 else:
                     this_img = np.ones((self.image_size, self.image_size, 3)).astype(np.uint8) * 255
                 this_img = 255 - this_img
@@ -83,12 +90,13 @@ class PANDADataset(Dataset):
 
 
 class  PANDADatasetTiles(Dataset):
-    def __init__(self,image_folder,df,image_size,num_tiles,transform=None):
+    def __init__(self,image_folder,df,image_size,num_tiles,transform=None,attention_df=None):
         self.image_folder = image_folder
         self.df = df.reset_index(drop=True)
         self.image_size = image_size 
         self.num_tiles = num_tiles
         self.transform = transform
+        self.atten_df = attention_df
         
     def __len__(self):
         return len(self.df)
@@ -96,14 +104,37 @@ class  PANDADatasetTiles(Dataset):
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
         img_id = row.image_id
-        if config.tiff:
-            tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
-            image = skimage.io.MultiImage(tiff_file)[1]
+        if config.tile_png:
+            if config.use_attention:
+                subdf=self.atten_df[self.atten_df.image_id==img_id].sort_values(
+                    by=[f'attention_fold_{config.fold}'],
+                    ascending=False)
+                file_list = subdf.file_name.values[:self.num_tiles]
+                file_list = [fn.split('_')[-1] for fn in file_list]
+            else:
+                file_list = [str(i)+'.png' for i in range(self.num_tiles)]
+            img_tiles = []
+            for fn in file_list:
+                tile_path = os.path.join(self.image_folder,img_id,fn)
+                tile = skimage.io.imread(tile_path)
+                img_tiles.append(tile)
         else:
-            img_file = os.path.join(self.image_folder,f'{img_id}.png')
-            image = cv2.imread(img_file)
-            image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-        img_tiles = get_tiles(image,self.image_size,self.num_tiles)
+            if config.tiff:
+                tiff_file = os.path.join(self.image_folder, f'{img_id}.tiff')
+                image = skimage.io.MultiImage(tiff_file)[1]
+            else:
+                img_file = os.path.join(self.image_folder,f'{img_id}.png')
+                image = cv2.imread(img_file)
+                image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+                
+            if config.crop_white:
+                image = crop_white(image)
+
+            if config.BRS:  
+                img_tiles = get_tiles_brs(image,self.image_size,self.num_tiles)
+            else:
+                img_tiles = get_tiles(image,self.image_size,self.num_tiles)
+
         images = np.zeros((self.num_tiles,3,self.image_size,self.image_size),np.float32)
         for i,tile in enumerate(img_tiles):
             if self.transform:
@@ -113,10 +144,14 @@ class  PANDADatasetTiles(Dataset):
             tile = tile.transpose(2,0,1)
             images[i,:,:,:] = tile 
 
-        label = row.isup_grade
-        if config.model_type=='reg':
+        if config.model_type=='ord_reg':
+            label = np.zeros(5).astype(np.float32)
+            label[:row.isup_grade] = 1.
+        elif config.model_type=='reg':
+            label = row.isup_grade
             label = torch.tensor(label).float()
         else:
+            label = row.isup_grade
             label = torch.tensor(label).long()
 
         return torch.tensor(images).float(),label 
