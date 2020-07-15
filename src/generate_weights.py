@@ -61,11 +61,11 @@ class  PANDADatasetTiles(Dataset):
 
 def load_model_from_ckpt(ckpt_path):
     ckpt = torch.load(ckpt_path)
-    c_out = 6 
+    c_out = 1 
     model = EfficientModel(c_out, 64,256,'efficientnet-b0','bag','attention')
     model.load_state_dict(ckpt)
-    model.eval();
-    model.to('cuda');
+    model.eval()
+    model.to('cuda')
     return model
 
 
@@ -106,11 +106,11 @@ if __name__=='__main__':
                                 transform=get_transforms(phase='valid'))
     
     #load model 
-    ckpt_path = '/home/jijianyi/workspace/kaggle/logs/panda-challenge/tiles-eb0-attention-cls-64-256-f1/best_kappa_f1.pth'
+    ckpt_path = '/home/jijianyi/workspace/kaggle/logs/panda-challenge/newcv-tiles-eb0-attention-reg-64-256-f1/best_kappa_f1.pth'
     model = load_model_from_ckpt(ckpt_path)
     weights,tile_names,img_names = compute_weights(model,train_dataset)
     tile_stats=pd.DataFrame({'image_id':img_names,'file_name':tile_names,'attention_fold_1':weights})
-    tile_stats.to_csv('/home/jijianyi/workspace/kaggle/kaggle-panda-challenge/data/tile_stats.csv',index=False)
+    tile_stats.to_csv('/home/jijianyi/workspace/kaggle/kaggle-panda-challenge/data/tile_stats_new.csv',index=False)
 
     
 

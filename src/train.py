@@ -38,10 +38,12 @@ def run():
 
     logging.info(f"fold: {config.fold}")
     fold = config.fold
-    trn_idx = folds[folds['fold'] != fold].index
-    val_idx = folds[folds['fold'] == fold].index
+    #trn_idx = folds[folds['fold'] != fold].index
+    #val_idx = folds[folds['fold'] == fold].index
+    trn_idx = folds[folds[f'fold_{fold}']==0].index
+    val_idx = folds[folds[f'fold_{fold}']==1].index
+
     df_train = folds.loc[trn_idx]
-        
     df_val = folds.loc[val_idx]
     # #------single image------
     # train_dataset = PANDADataset(image_folder=config.DATA_PATH,
@@ -84,12 +86,12 @@ def run():
                             )
 
     device = torch.device("cuda")
-    model=EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch='efficientnet-b4')
-    #model = EfficientModel(c_out=6,n_tiles=config.num_tiles,
-    #                       tile_size=config.IMG_SIZE,
-    #                       name='efficientnet-b0',
-    #                       strategy='bag',
-    #                       head='attention')
+    model=EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch=config.backbone)
+    # model = EfficientModel(c_out=config.num_class,n_tiles=config.num_tiles,
+    #                        tile_size=config.IMG_SIZE,
+    #                        name=config.backbone,
+    #                        strategy='bag',
+    #                        head='attention')
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)
