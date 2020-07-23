@@ -56,6 +56,43 @@ class EfficientModel(nn.Module):
         h = self.head(h)
         return h
 
+class ResnetModel(nn.Module):
+
+    def __init__(self, c_out=5, n_tiles=36, tile_size=224, pretrained=True, strategy='stitched', head='basic'):
+        super().__init__()
+
+        from torchvision.models import resnet34
+        m = resnet34(pretrained=pretrained)
+        c_feature = m.fc.in_features
+        m.fc = nn.Identity()
+        self.feature_extractor = m
+        self.n_tiles = n_tiles
+        self.tile_size = tile_size
+
+        if strategy == 'stitched':
+            if head == 'basic':
+                self.head = nn.Linear(c_feature, c_out)
+            elif head == 'concat':
+                m._avg_pooling = AdaptiveConcatPool2d()
+                self.head = nn.Linear(c_feature * 2, c_out)
+            elif head == 'gem':
+                m._avg_pooling = GeM()
+                self.head = nn.Linear(c_feature, c_out)
+        elif strategy == 'bag':
+            if head == 'basic':
+                self.head = BasicHead(c_feature, c_out, n_tiles)
+            elif head == 'attention':
+                self.head = AttentionHead(c_feature, c_out, n_tiles)
+
+        self.strategy = strategy
+
+    def forward(self, x):
+        if self.strategy == 'bag':
+            x = x.view(-1, 3, self.tile_size, self.tile_size)
+        h = self.feature_extractor(x)
+        h = self.head(h)
+        return h
+
 
 class BasicHead(nn.Module):
 

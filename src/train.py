@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import DataLoader,RandomSampler,SequentialSampler
 from torch.optim import Adam
 from tensorboardX import SummaryWriter
+import multiprocessing
 
 
 import config 
@@ -18,7 +19,8 @@ from utils import (
 from engine import train_fn,eval_fn,OptimizedRounder
 from dataset import PANDADataset,PANDADatasetTiles,get_transforms
 from model import * 
-from modules import EfficientModel
+from modules import EfficientModel,ResnetModel
+
 
 def run():
     seed_torch(seed=config.seed)
@@ -38,58 +40,69 @@ def run():
 
     logging.info(f"fold: {config.fold}")
     fold = config.fold
-    trn_idx = folds[folds['fold'] != fold].index
-    val_idx = folds[folds['fold'] == fold].index
-    df_train = folds.loc[trn_idx]
-        
+    #trn_idx = folds[folds['fold'] != fold].index
+    #val_idx = folds[folds['fold'] == fold].index
+    trn_idx = folds[folds[f'fold_{fold}']==0].index
+    val_idx = folds[folds[f'fold_{fold}']==1].index
+
+    df_train = folds.loc[trn_idx] 
     df_val = folds.loc[val_idx]
     # #------single image------
-    # train_dataset = PANDADataset(image_folder=config.DATA_PATH,
-    #                             df=df_train,
-    #                             image_size=config.IMG_SIZE,
-    #                             num_tiles=config.num_tiles,
-    #                             rand=False,
-    #                             transform=get_transforms(phase='train'))
-    # valid_dataset = PANDADataset(image_folder=config.DATA_PATH,
-    #                             df=df_val,
-    #                             image_size=config.IMG_SIZE,
-    #                             num_tiles=config.num_tiles,
-    #                             rand=False, 
-    #                             transform=get_transforms(phase='valid'))
+    if config.strategy=='stitched':
+        train_dataset = PANDADataset(image_folder=config.DATA_PATH,
+                                    df=df_train,
+                                    image_size=config.IMG_SIZE,
+                                    num_tiles=config.num_tiles,
+                                    rand=False,
+                                    transform=get_transforms(phase='train'),
+                                    attention_df=attention_df)
+        valid_dataset = PANDADataset(image_folder=config.DATA_PATH,
+                                    df=df_val,
+                                    image_size=config.IMG_SIZE,
+                                    num_tiles=config.num_tiles,
+                                    rand=False, 
+                                    transform=get_transforms(phase='valid'),
+                                    attention_df=attention_df)
 
     #------image tiles------
-    train_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
-                                df=df_train,
-                                image_size=config.IMG_SIZE,
-                                num_tiles=config.num_tiles,
-                                transform=get_transforms(phase='train'),
-                                attention_df= attention_df)
-    valid_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
-                                df=df_val,
-                                image_size=config.IMG_SIZE,
-                                num_tiles=config.num_tiles,
-                                transform=get_transforms(phase='valid'),
-                                attention_df=attention_df)
+    else:
+        train_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
+                                    df=df_train,
+                                    image_size=config.IMG_SIZE,
+                                    num_tiles=config.num_tiles,
+                                    transform=get_transforms(phase='train'),
+                                    attention_df= attention_df)
+        valid_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
+                                    df=df_val,
+                                    image_size=config.IMG_SIZE,
+                                    num_tiles=config.num_tiles,
+                                    transform=get_transforms(phase='valid'),
+                                    attention_df=attention_df)
 
     train_loader = DataLoader(train_dataset, 
                               batch_size=config.batch_size,
                               sampler=RandomSampler(train_dataset),
-                              num_workers=8,
+                              num_workers=multiprocessing.cpu_count(),
                               pin_memory=True)
     val_loader = DataLoader(valid_dataset, 
                             batch_size=config.batch_size,
                             sampler=SequentialSampler(valid_dataset),
-                            num_workers=8,
+                            num_workers=multiprocessing.cpu_count(),
                             pin_memory=True
                             )
 
     device = torch.device("cuda")
-    model=EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch='efficientnet-b0')
-    #model = EfficientModel(c_out=6,n_tiles=config.num_tiles,
+    #model=EnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,arch=config.backbone)
+    #model = EnetV1(backbone=config.backbone, num_classes=config.num_class)
+    #------Model use for Generate Tile Weights--------
+    #model = EfficientModel(c_out=config.num_class,n_tiles=config.num_tiles,
     #                       tile_size=config.IMG_SIZE,
-    #                       name='efficientnet-b0',
+    #                       name=config.backbone,
     #                       strategy='bag',
     #                       head='attention')
+    #--------------------------------------------------
+    #model = Regnet(num_classes=config.num_class,ckpt=config.pretrain_model)
+    model = RegnetNetVLAD(num_clusters=config.num_cluster,num_tiles=config.num_tiles,num_classes=config.num_class,ckpt=config.pretrain_model)
     model = model.to(device)
     if config.multi_gpu:
         model = torch.nn.DataParallel(model)

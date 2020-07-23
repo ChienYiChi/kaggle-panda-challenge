@@ -8,62 +8,46 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 
 ## Experiments Record 
 
-### E1: Classification vs Regression 
-| type     |  model  |  local kappa | public kappa  |  fold num | image size |
-| :--------: |:--------:| :--------:|:--------:|:--------:|:--------:|
-|classification| eb04 | 0.7406 | 0.59 | 0 | 512 |
-|classification| eb04 | 0.7406 | 0.59 | 0 | 512 |
-|classification| eb04 3rd epoch ckpt | 0.6848 | 0.59 | 0 | 512 | 
-|classification| eb04 8th epoch ckpt | 0.7098 | 0.54 | 0 | 512 |
-|regression| eb04 | 0.727 | 0.50 | 0 | 256 | 
-|regression| eb04 | 0.7136| 0.53 | 1 | 256 |
+### tile images model
+| type |  model  | private kappa |public kappa | local kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
+|:--------:|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
+| cls | tiles-resnext50-netvlad | 0.896 | 0.879 | 0.8602 | 0.8884 | 0.8089 | 0 | 256 | 20 | 27 | 8 | 
+| cls | tiles-eb0-netvlad | 0.882 | 0.849 | 0.8762 | 0.877 | 0.851 | 0 | 256 | 20 | 26 | 8 | 
+| cls | tiles-eb0-netvlad | 0.857 | 0.856 | 0.8834 | 0.8714 | 0.8692 | 0 | 256 | 36 | 22 | 8 | 
+| cls | tiles-resnet34-netvlad | 0.87 | 0.848 | 0.8745 | 0.8697 | 0.8522 | 0 | 256 | 20 | 28 | 8 | 
+| reg | tiles-eb0-netvlad | 0.899 | 0.859 |0.8777 | 0.8820 | 0.8470 | 0 | 256 | 20 | 29 | 8 | 
+| reg | tiles-eb0-netvlad | **0.920** | 0.881 | 0.8952 | 0.8976 | 0.8704 | 0 | 256 | 36 | 28 | 8 | 
+| reg | tiles-eb0-netvlad | 0.903 | 0.893 | 0.886 | 0.8979 | 0.8464 | 1 | 256 | 36 | 22 | 8 | 
+| reg | tiles-eb4-netvlad train with BRS（blue ratio selection）,test without BRS | 0.909 | **0.90** | 0.8826 | 0.9047 | 0.8335 | 1 | 256 | 36 | 26 | 8 | 
+| reg | tiles-eb4-netvlad test with BRS | 0.913 | 0.896 | 0.8826 | 0.9047 | 0.8335 | 1 | 256 | 36 | 26 | 8 |
+| reg | tiles-eb0-netvlad with attention model(128 tiles) to select tiles | 0.899 | 0.88 | 0.8833 | 0.9034 | 0.8367 | 1 | 256 | 16 | 27 | 8 TTA only for score model|
+| reg | tiles-eb0-netvlad with attention model to select tiles | 0.910 | 0.88 | 0.8833 | 0.9034 | 0.8367 | 1 | 256 | 16 | 27 | 8 TTA only for score model|
+| reg | tiles-eb0-netvlad with attention model to select tiles | 0.813 | 0.874 | 0.8859 | 0.8945 | 0.8481 | 1 | 256 | 36 | 25 | 8 TTA only for score model|
+| reg | tiles-eb4-netvlad with attention model to select tiles | 0.908 | 0.897 | 0.8766 | 0.9035 | 0.8246 | 1 | 256 | 16 | 27 | 8 TTA only for score model|
+| reg | newcv tiles-eb4-netvlad with attention model to select tiles | 0.904 | 0.899 | 0.8812 | 0.8958 | 0.8437 | 1 | 256 | 16 | 27 | 8 TTA only for score model|
+| ord reg | newcv tiles-eb0-netvlad with attention model to select tiles | 0.913 | 0.884 | 0.8958 | 0.8972 | 0.8732 | 1 | 256 | 16 | 27 | 8 TTA only for score model|
+| ord reg | newcv tiles-eb4-netvlad with attention model to select tiles | 0.900 | 0.879 | 0.887 | 0.9006 | 0.8524 | 1 | 256 | 16 | 27 | 8 TTA only for score model|
+| reg | stitch-tiles-regnety_800m with attention model to select tiles | 0.911 | 0.893 | 0.8935 | 0.8872 | 0.8757 | 1 | 256 | 16 | 28 | 8 TTA only for score model |
 
-### E2: White Background Trim Function
-| type     |  model  |  local kappa | public kappa  |  fold num | image size |
-| :--------: |:--------:| :--------:|:--------:|:--------:|:--------:|
-|classification| eb04 | 0.7410 | 0.54 | 0 | 512 |
+## How to Run 
+ - generate tiles using *preprocess.py*
+### train one-stage model 
+1. set model type and hyperparameters in *config.py*  
+2. change model function in *train.py* 
 
-### E3: Image size
-| type     |  model  |  local kappa | public kappa  |  fold num | image size |
-| :--------: |:--------:| :--------:|:--------:|:--------:|:--------:|
-|classification| eb04 |  |  | 0 | 768 |
-|classification| eb04 |  |  | 0 | 1024 |
-
-### E4: Image Tiles Input
-|  model  | public kappa | local kappa  |  fold num | image size | num tiles | TTA | 
-|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
-| resnext50 | 0.75 | 0.7916 | 0 | 128 | 12 | 8 | 
-| resnext50 | 0.83 | 0.8379 | 0 | 256 | 12 | 8 | 
-| resnext50 | 0.86 | 0.8474 | 0 | 256 | 20 | 8 |
-| resnext50 | 0.86|  0.8635 | 0 | 256 | 32 | 8 |
-| resnetx50 | 0.85 | 0.8600 | 0 | 256 | 20 | 8 |
-| resnext50 | 0.88 | 0.8497 | 1 | 256 | 20 | 8 |
-| resnext50 | 0.85 |0.8497 | 1 | 256 | 20 | 0 | 
-| eb0 | 0.83 | 0.8411 | 0 | 256 | 20 | 8 | 
-
-| type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
-|:--------:|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
-| cls | tiles-resnext50-netvlad | 0.87 | 0.8602 | 0.8884 | 0.8089 | 0 | 256 | 20 | 27 | 8 | 
-| cls | tiles-eb0-netvlad | 0.84 | 0.8762 | 0.877 | 0.851 | 0 | 256 | 20 | 26 | 8 | 
-| cls | tiles-eb0-netvlad | 0.85 | 0.8834 | 0.8714 | 0.8692 | 0 | 256 | 36 | 22 | 8 | 
-| cls | tiles-resnet34-netvlad | 0.84 | 0.8745 | 0.8697 | 0.8522 | 0 | 256 | 20 | 28 | 8 | 
-| reg | tiles-eb0-netvlad | 0.85 | 0.8777 | 0.8820 | 0.8470 | 0 | 256 | 20 | 29 | 8 | 
-| reg | tiles-eb0-netvlad | 0.88 | 0.8952 | 0.8976 | 0.8704 | 0 | 256 | 36 | 28 | 8 | 
-| reg | tiles-eb0-netvlad | 0.89 | 0.886 | 0.8979 | 0.8464 | 1 | 256 | 36 | 22 | 8 | 
-| reg | tiles-eb4-netvlad | **0.90** | 0.8826 | 0.9047 | 0.8335 | 1 | 256 | 36 | 26 | 8 | 
-| cls | tiles-eb0-attention | | 0.8651 | 0.8867 | 0.8152 | 1 | 256 | 64 | 22 | |
-| reg | tiles-eb0-netvlad with model above to select tiles | 0.88 | 0.8833 | 0.9034 | 0.8367 | 1 | 256 | 16 | 27 | 8 TTA only for score model|  
+### train two-stage model (attention model + score model)
+1. set model type and hyperparameters in *config.py*
+2. change the model function to the efficienet model with attention layer in *train.py*
+3. generate tiles weights using *generate_weights.py* which will output a tiles weights csv file
+4. set model type and hyperparameter again in *config.py* if you want to change the model type , for example regression or ordinal regression
+5. change the model function in *train.py* ,for example, efficientnet with NetVlad layer
 
 
-### E6: 36 x tiles 256
-| type |  model  | public kappa | local all kappa  | karolinska kappa | radboud kappa |  fold num | image size | num tiles | epoch | TTA |
-|:--------:|:--------:| :--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|:--------:|
-| ordinal regression| eb0 | 0.84 | 0.91 ||| 0 | 256 | 36 | | 0 |
-| ordinal regression  | eb0 version2 | 0.84 | 0.8653 | 0.8758 | 0.822 | 0 | 256 | 36 | 22 | 0 | 
-| ordinal regression | eb0 | 0.85 | 0.8645 | 0.8826,| 0.8114 | 1 | 256 | 36 | 30 | 0 |
-| ordinal regression | eb0 | 0.85 | 0.8645 | 0.8826 | 0.8114 | 1 | 256 | 36 | 30 | 8 |
-| ordinal regression | eb0 new ranadom seed 42 | 0.85 | 0.8751 | 0.8746 | 0.8435 | 0 | 256 | 36 | 30 | 0 | 
-| regression | eb0  new ranadom seed 42 | 0.86 | 0.9029 | 0.8866 | 0.8784 | 0 | 256 | 36 | 28 | 0 | 
-| regression | eb0  new random seed 42 | 0.87 | 0.9029 | 0.8866 | 0.8784 | 0 | 256 | 36 | 28 | 8 | 
-
+## References
+Thanks everyone who shared their ideas on Kaggle discussion, I learned a lot from them.
+- https://www.kaggle.com/iafoss/panda-concat-tile-pooling-starter-0-79-lb
+- https://www.kaggle.com/haqishen/panda-inference-w-36-tiles-256
+- https://github.com/facebookresearch/pycls
+- https://github.com/loadder/netVLAD-pytorch 
+- https://arxiv.org/abs/1511.07247
  
