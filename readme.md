@@ -2,6 +2,9 @@
 
 Here is the solution code of Team ChienYiChi for https://www.kaggle.com/c/prostate-cancer-grade-assessment/overview.
 
+- kaggle profile: https://www.kaggle.com/ericji
+- kaggle solution discussion: https://www.kaggle.com/c/prostate-cancer-grade-assessment/discussion/169114 
+
 ## Dependencies
 `pip install -r requirements.txt`
 
