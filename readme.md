@@ -1,6 +1,6 @@
 # Kaggle Prostate cANcer graDe Assessment (PANDA) Challenge 
 
-Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/overview.
+Here is the solution code of Team ChienYiChi for https://www.kaggle.com/c/prostate-cancer-grade-assessment/overview.
 
 ## Dependencies
 `pip install -r requirements.txt`
@@ -30,17 +30,17 @@ Solution code for https://www.kaggle.com/c/prostate-cancer-grade-assessment/over
 | reg | stitch-tiles-regnety_800m with attention model to select tiles | 0.911 | 0.893 | 0.8935 | 0.8872 | 0.8757 | 1 | 256 | 16 | 28 | 8 TTA only for score model |
 
 ## How to Run 
- - generate tiles using *preprocess.py*
+ - generate tiles using **preprocess.py**
 ### train one-stage model 
-1. set model type and hyperparameters in *config.py*  
-2. change model function in *train.py* 
+1. set model type and hyperparameters in **config.py**  
+2. change model function in **train.py** 
 
 ### train two-stage model (attention model + score model)
-1. set model type and hyperparameters in *config.py*
-2. change the model function to the efficienet model with attention layer in *train.py*
-3. generate tiles weights using *generate_weights.py* which will output a tiles weights csv file
-4. set model type and hyperparameter again in *config.py* if you want to change the model type , for example regression or ordinal regression
-5. change the model function in *train.py* ,for example, efficientnet with NetVlad layer
+1. set model type and hyperparameters in **config.py**
+2. change the model function to the efficienet model with attention layer in **train.py**
+3. generate tiles weights using **generate_weights.py** which will output a tiles weights csv file
+4. set model type and hyperparameter again in **config.py** if you want to change the model type , for example regression or ordinal regression
+5. change the model function in **train.py** ,for example, efficientnet with NetVlad layer
 
 
 ## References
