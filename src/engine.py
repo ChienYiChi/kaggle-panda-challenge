@@ -111,7 +111,8 @@ def eval_fn(data_loader,model,device,epoch,writer,df,coefficients=None):
 
     fin_targets = np.array(fin_targets)
     fin_preds = np.array(fin_preds)
-   
+    if config.model_type!='cls':
+        fin_preds = np.squeeze(fin_preds,axis=-1)
     if config.model_type=='reg':
         # fin_preds = np.concatenate(fin_preds)
         # fin_preds[fin_preds<threshold[0]]=0
@@ -127,7 +128,8 @@ def eval_fn(data_loader,model,device,epoch,writer,df,coefficients=None):
                                     fin_preds[df['data_provider']=='karolinska'])
     qwk_r = quadratic_weighted_kappa(fin_targets[df['data_provider']=='radboud'],
                                     fin_preds[df['data_provider']=='radboud'])
-    acc_metric = accuracy(fin_preds,fin_targets,config.num_class)
+
+    acc_metric = accuracy(fin_preds,fin_targets,6)
     
     logging.info(f"Epoch {epoch} | val loss {avg_loss} | kappa all:{qwk}, karolinska:{qwk_k}, radboud:{qwk_r}")
     logging.info(f"Epoch {epoch} | val acc {acc_metric}")

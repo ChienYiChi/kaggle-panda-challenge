@@ -113,6 +113,25 @@ class EnetV2(nn.Module):
         x = self.head(x)
         return x
 
+class Regnet(nn.Module):
+    def __init__(self,num_classes=1,ckpt=None):
+        super(Regnet,self).__init__()
+        from pycls.core.config import cfg 
+        import pycls.core.config as model_config 
+        from pycls.core.builders import build_model
+        model_config.load_cfg_fom_args("Train a cls model")
+        cfg.freeze()
+        model = build_model()
+        if ckpt:
+            model.load_state_dict(torch.load(ckpt)['model_state'])
+        in_features = model.head.fc.in_features
+        fc = nn.Linear(in_features,num_classes)
+        self.model = model 
+        self.model.head.fc = fc
+    def forward(self,x):
+        x = self.model(x)
+        return x
+
 
 class Resnext50(nn.Module):
     def __init__(self,arch='resnext50_32x4d_ssl',num_classes=6):
@@ -233,6 +252,48 @@ class ResnetwNetVLAD(nn.Module):
         return x
 
 
+class RegnetNetVLAD(nn.Module):
+    def __init__(self, num_clusters,num_tiles,num_classes,ckpt):
+        super().__init__()
+        from pycls.core.config import cfg 
+        import pycls.core.config as model_config 
+        from pycls.core.builders import build_model
+        model_config.load_cfg_fom_args("Train a cls model")
+        cfg.freeze()
+        model = build_model()
+        if ckpt:
+            model.load_state_dict(torch.load(ckpt)['model_state'])
+        self.enc = nn.Sequential(
+            model.stem,
+            model.s1,
+            model.s2,
+            model.s3,
+            model.s4,
+            nn.AdaptiveAvgPool2d(output_size=(1, 1)),
+            nn.Flatten(),
+            nn.Dropout(p=0.3)
+        )
+        self.nc = model.head.fc.in_features
+        self.netvlad = NetVLAD(cluster_size=num_clusters,max_frames=num_tiles,
+                    feature_size=self.nc,truncate=False)
+        self.fc = nn.Linear(num_clusters*self.nc,num_classes)
+        
+    def forward(self, x):
+        """
+        Args:
+            x (batch,N,3,h,w):
+        """
+        batch = x.shape[0]
+        shape = x[0].shape
+        n = shape[0]
+        x = x.view(-1,shape[1],shape[2],shape[3]) #x: bs*num_tiles x 3 x H x W
+        x = self.enc(x) #x: bs*num_tiles x nc
+        x = x.view(batch,n,self.nc)
+        x = self.netvlad(x)
+        x = self.fc(x)
+        return x
+        
+        
 class EnetNetVLAD(nn.Module):
     def __init__(self, num_clusters,num_tiles,num_classes,arch='efficientnet-b0'):
         super().__init__()
@@ -292,9 +353,8 @@ class MixNetVLAD(nn.Module):
 
 
 if __name__=='__main__':
-    x = torch.rand(4,36,3,128,128).cuda()
-    model = EnetNetVLAD(num_clusters=6,num_tiles=36,num_classes=6).cuda()
+    x = torch.rand(2,16,3,256,256)
+    model = RegnetNetVLAD(6,16,1,ckpt=None)
+
     output = model(x)
     print(output.size())
-
-    
