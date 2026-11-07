@@ -14,15 +14,15 @@ import config
 from sklearn.metrics import cohen_kappa_score
 from functools import partial
 
-ATTENTION_MODEL = '/home/jijianyi/workspace/kaggle/logs/panda-challenge/tiles-eb0-attention-cls-64-256-f1/best_kappa_f1.pth'
-SCORE_MODEL = '/home/jijianyi/workspace/kaggle/logs/panda-challenge/tiles-eb0-netvlad-attention-reg-16-256-f1/best_kappa_f1.pth'
+ATTENTION_MODEL = os.environ.get('PANDA_ATTENTION_MODEL', os.path.join(config.WORK_DIR, 'logs', 'tiles-eb0-attention-cls-64-256-f1', 'best_kappa_f1.pth'))
+SCORE_MODEL = os.environ.get('PANDA_SCORE_MODEL', os.path.join(config.WORK_DIR, 'logs', 'tiles-eb0-netvlad-attention-reg-16-256-f1', 'best_kappa_f1.pth'))
 folds = pd.read_csv(config.fold_csv)
 fold = config.fold
 trn_idx = folds[folds['fold'] != fold].index
 val_idx = folds[folds['fold'] == fold].index
 df = folds.loc[val_idx]
 
-image_folder = '/mnt/data/prostate-cancer-grade-assessment/train_images/'
+image_folder = os.path.join(config.PANDA_ROOT, 'train_images') + os.sep
 
 tile_size = 256
 batch_size = 4

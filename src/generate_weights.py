@@ -1,4 +1,5 @@
 import os 
+import argparse
 import skimage
 import cv2 
 import numpy as np 
@@ -98,6 +99,12 @@ def compute_weights(model, dataset):
     return attention_weights,tile_names,img_names
 
 if __name__=='__main__':
+    parser = argparse.ArgumentParser(description='Compute an attention weight for every tile of every training slide.')
+    parser.add_argument('--ckpt', required=True, help='attention-model checkpoint (.pth) written by train.py')
+    parser.add_argument('--out', default=None, help='output csv (default: <config.tile_stats_csv without .csv>_new.csv, so the existing file is never overwritten)')
+    args = parser.parse_args()
+    out_csv = args.out or (os.path.splitext(config.tile_stats_csv)[0] + '_new.csv')
+
     folds = pd.read_csv(config.fold_csv)
     train_dataset = PANDADatasetTiles(image_folder=config.DATA_PATH,
                                 df=folds,
@@ -106,11 +113,10 @@ if __name__=='__main__':
                                 transform=get_transforms(phase='valid'))
     
     #load model 
-    ckpt_path = '/home/jijianyi/workspace/kaggle/logs/panda-challenge/newcv-tiles-eb0-attention-reg-64-256-f1/best_kappa_f1.pth'
-    model = load_model_from_ckpt(ckpt_path)
+    model = load_model_from_ckpt(args.ckpt)
     weights,tile_names,img_names = compute_weights(model,train_dataset)
     tile_stats=pd.DataFrame({'image_id':img_names,'file_name':tile_names,'attention_fold_1':weights})
-    tile_stats.to_csv('/home/jijianyi/workspace/kaggle/kaggle-panda-challenge/data/tile_stats_new.csv',index=False)
+    tile_stats.to_csv(out_csv, index=False)
 
     
 

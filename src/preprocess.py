@@ -9,6 +9,7 @@ from tqdm import tqdm
 import multiprocessing
 import dataset
 import glob 
+from tiling import split_ranges
 
 
 def crop_white(image: np.ndarray) -> np.ndarray:
@@ -22,9 +23,9 @@ def crop_white(image: np.ndarray) -> np.ndarray:
 
 
 def save_image():
-    orig_path = '/mnt/data/prostate-cancer-grade-assessment/train_images/'
-    save_path = '/mnt/data/prostate-cancer-grade-assessment/train_original_2/'
-    os.mkdir(save_path)
+    orig_path = os.path.join(config.PANDA_ROOT, 'train_images') + os.sep
+    save_path = os.path.join(config.WORK_DIR, 'train_original_2') + os.sep
+    os.makedirs(save_path, exist_ok=True)
 
     train_names = os.listdir(orig_path)
     for t in tqdm(train_names):
@@ -39,8 +40,8 @@ def save_image():
 
 
 def save_image_fix():
-    orig_path = '/home/jijianyi/dataset/train_original_2/'
-    save_path = '/home/jijianyi/dataset/train_original_2/'
+    orig_path = os.path.join(config.WORK_DIR, 'train_original_2') + os.sep
+    save_path = orig_path  # rewritten in place
 
     train_names = os.listdir(orig_path)
     for t in tqdm(train_names):
@@ -53,9 +54,9 @@ def save_image_fix():
 
 
 def save_crop_white():
-    orig_path = '/mnt/data/prostate-cancer-grade-assessment/train_images/'
-    save_path = '/mnt/data/prostate-cancer-grade-assessment/train_level_2_crop_white/'
-    os.mkdir(save_path)
+    orig_path = os.path.join(config.PANDA_ROOT, 'train_images') + os.sep
+    save_path = os.path.join(config.WORK_DIR, 'train_level_2_crop_white') + os.sep
+    os.makedirs(save_path, exist_ok=True)
 
     train_names = os.listdir(orig_path)
     for t in tqdm(train_names):
@@ -82,12 +83,12 @@ def train_val_split():
 
 def images_to_tiles(slide_paths,save_path,img_size,num_tiles,start_ind,end_ind):
     for sp in slide_paths[start_ind:end_ind+1]:
-        name = sp.split('/')[-1].split('.')[0]
+        name = os.path.basename(sp).split('.')[0]
         img = skimage.io.MultiImage(sp)[1]
         shape = img.shape
         best_tiles = dataset.get_tiles(img,img_size,num_tiles)
         tile_root_path = os.path.join(save_path,name)
-        os.mkdir(tile_root_path)
+        os.makedirs(tile_root_path, exist_ok=True)
         for i in range(num_tiles):
             tile_path = os.path.join(tile_root_path,str(i)+'.png')
             skimage.io.imsave(tile_path,best_tiles[i])
@@ -97,23 +98,19 @@ def images_to_tiles(slide_paths,save_path,img_size,num_tiles,start_ind,end_ind):
 def multiprocess_make_images_tiles():
     TILE_SIZE = 256 
     NUM_TILES = 64
-    orig_path = '/mnt/data/prostate-cancer-grade-assessment/train_images/'
-    save_path = '/mnt/data/prostate-cancer-grade-assessment/train_tiles/'
-    os.mkdir(save_path)
+    orig_path = os.path.join(config.PANDA_ROOT, 'train_images') + os.sep
+    save_path = config.DATA_PATH  # train.py reads tiles from here
+    os.makedirs(save_path, exist_ok=True)
 
     num_processes = multiprocessing.cpu_count()
     pool = multiprocessing.Pool(num_processes)     
     
     train_image_pathes = glob.glob(orig_path+"*.tiff")
     num_train_images = len(train_image_pathes)
-    images_per_process = num_train_images/num_processes
-
     tasks = []
-    for num_process in range(1,num_processes+1):
-        start_index = (num_process -1)*images_per_process+1
-        end_index = num_process * images_per_process
-        start_index = int(start_index)
-        end_index = int(end_index)
+    for num_process, (start_index, end_index) in enumerate(split_ranges(num_train_images, num_processes), start=1):
+        if start_index > end_index:
+            continue  # more processes than slides
         tasks.append((train_image_pathes,save_path,TILE_SIZE,NUM_TILES,start_index,end_index))
         if start_index == end_index:
             print("Task #" + str(num_process) + ": Process slide " + str(start_index))
