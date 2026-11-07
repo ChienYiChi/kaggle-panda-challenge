@@ -1,17 +1,20 @@
-torch 
-efficientnet-pytorch 
-numpy 
-pandas 
+# Runtime requirements (the original file listed only 8 of the 14 packages the code imports).
+torch
+torchvision
+numpy
+pandas
+scipy
 scikit-learn
 scikit-image
+opencv-python
 albumentations
-opencv-python
-black==19.3b0
-flake8
-isort
-numpy
-opencv-python
+efficientnet-pytorch
+timm
+pretrainedmodels
+tensorboardX
+tqdm
+yacs
+simplejson
 parameterized
 setuptools
-simplejson
-yacs
+# Optional: NVIDIA apex (mixed precision) is only imported when config.apex is True; it is not on PyPI, see https://github.com/NVIDIA/apex

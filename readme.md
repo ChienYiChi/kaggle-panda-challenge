@@ -5,8 +5,26 @@ Here is the solution code of Team ChienYiChi for https://www.kaggle.com/c/prosta
 - kaggle profile: https://www.kaggle.com/ericji
 - kaggle solution discussion: https://www.kaggle.com/c/prostate-cancer-grade-assessment/discussion/169114 
 
-## Dependencies
-`pip install -r requirements.txt`
+## Setup
+```
+pip install -r requirements.txt          # runtime
+pip install -r requirements-dev.txt      # optional: formatter and linter
+python -m unittest discover -s tests     # quick check, no GPU or data needed
+```
+
+### Where files live
+Nothing is tied to one machine any more. Locations are set with environment variables (defaults in brackets):
+
+| variable | meaning |
+|---|---|
+| `PANDA_ROOT` [`./data/prostate-cancer-grade-assessment`] | the competition download (`train_images/*.tiff`) |
+| `PANDA_WORK_DIR` [`./work`] | generated tiles, checkpoints and logs |
+| `PANDA_TILES_DIR` [`$PANDA_WORK_DIR/train_tiles`] | where `preprocess.py` writes tiles and `train.py` reads them |
+| `PANDA_PRETRAIN_MODEL` [`$PANDA_WORK_DIR/ckpt/RegNetY-800MF_dds_8gpu.pyth`] | pretrained RegNet weights |
+| `PANDA_FOLD_CSV`, `PANDA_TILE_STATS_CSV` [`./data/...`] | fold assignments and tile weights |
+| `PANDA_ATTENTION_MODEL`, `PANDA_SCORE_MODEL` | checkpoints used by `src/test.py` |
+
+NVIDIA apex (mixed precision) is optional and only needed when `apex = True` in `config.py`.
 
 
 ## Experiments Record 
@@ -33,7 +51,7 @@ Here is the solution code of Team ChienYiChi for https://www.kaggle.com/c/prosta
 | reg | stitch-tiles-regnety_800m with attention model to select tiles | 0.911 | 0.893 | 0.8935 | 0.8872 | 0.8757 | 1 | 256 | 16 | 28 | 8 TTA only for score model |
 
 ## How to Run 
- - generate tiles using **preprocess.py**
+ - generate tiles using **preprocess.py** (`python src/preprocess.py`)
 ### train one-stage model 
 1. set model type and hyperparameters in **config.py**  
 2. change model function in **train.py** 
@@ -41,7 +59,7 @@ Here is the solution code of Team ChienYiChi for https://www.kaggle.com/c/prosta
 ### train two-stage model (attention model + score model)
 1. set model type and hyperparameters in **config.py**
 2. change the model function to the efficienet model with attention layer in **train.py**
-3. generate tiles weights using **generate_weights.py** which will output a tiles weights csv file
+3. generate tiles weights using **generate_weights.py** (`python src/generate_weights.py --ckpt path/to/best_kappa_f1.pth`) which will output a tiles weights csv file
 4. set model type and hyperparameter again in **config.py** if you want to change the model type , for example regression or ordinal regression
 5. change the model function in **train.py** ,for example, efficientnet with NetVlad layer
 
